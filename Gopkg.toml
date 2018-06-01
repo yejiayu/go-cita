@@ -29,6 +29,24 @@
   name = "github.com/labstack/echo"
   version = "3.3.5"
 
+[[constraint]]
+  name = "github.com/ethereum/go-ethereum"
+  branch = "release/1.8"
+
+[[constraint]]
+  name = "github.com/tecbot/gorocksdb"
+  branch = "master"
+
+[[prune.project]]
+    name = "github.com/ethereum/go-ethereum"
+    non-go = false
+    unused-packages = false
+
+[[prune.project]]
+    name = "github.com/tecbot/gorocksdb"
+    non-go = false
+    unused-packages = false
+
 [prune]
   go-tests = true
   unused-packages = true

@@ -65,6 +65,12 @@
   revision = "5d6fca44a948d2be89a9702de7717f0168403d3d"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/tecbot/gorocksdb"
+  packages = ["."]
+  revision = "3e476152774442234f9a9f747386a48a1d82a515"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/karalabe/cookiejar.v2"
   packages = ["collections/prque"]
@@ -73,6 +79,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d583cb2a9731c2670c8f272123c27edd491dec2a0ae5e0627a8cccd4f69162a1"
+  inputs-digest = "99f23676ea36983f7fffc69730d01accf924621c8866496de9705d9dfde1567a"
   solver-name = "gps-cdcl"
   solver-version = 1
