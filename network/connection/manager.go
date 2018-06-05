@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 	networkConfig "github.com/yejiayu/go-cita/config/network"
+	"github.com/yejiayu/go-cita/network/protocol"
 )
 
 type Manager interface {
@@ -13,6 +14,8 @@ type Manager interface {
 	UpdateConfig(config networkConfig.Config)
 
 	Available() []networkConfig.Peer
+
+	Send(key string, msg *protocol.Message)
 }
 
 func NewManager(config networkConfig.Config) Manager {
@@ -90,6 +93,43 @@ func (m *manager) Available() []networkConfig.Peer {
 	}
 
 	return peers
+}
+
+func (m *manager) Send(key string, msg *protocol.Message) {
+	origin := msg.Origin()
+	opType := msg.Optype()
+	sendMsg := protocol.NewMessage(opType, m.id, msg.Payload())
+
+	m.mu.RLock()
+	defer m.mu.Unlock()
+
+	switch opType {
+	case protocol.OpTypeSingle:
+		for peer, conn := range m.conns {
+			if peer.ID == origin {
+				err := conn.send(key, sendMsg.Raw())
+				if err != nil {
+					glog.Errorf("network: the message send to %-v failed, %s\n", peer, err.Error())
+				}
+			}
+		}
+	case protocol.OpTypeSubtract:
+		for peer, conn := range m.conns {
+			if peer.ID != origin {
+				err := conn.send(key, sendMsg.Raw())
+				if err != nil {
+					glog.Errorf("network: the message send to %-v failed, %s\n", peer, err.Error())
+				}
+			}
+		}
+	case protocol.OpTypeBroadcast:
+		for peer, conn := range m.conns {
+			err := conn.send(key, sendMsg.Raw())
+			if err != nil {
+				glog.Errorf("network: the message send to %-v failed, %s\n", peer, err.Error())
+			}
+		}
+	}
 }
 
 func (m *manager) checkReadied() {

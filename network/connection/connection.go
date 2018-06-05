@@ -14,7 +14,12 @@ func newConnection(id uint32, peer networkConfig.Peer) (*connection, error) {
 		return nil, err
 	}
 
-	return &connection{id: id, conn: conn, peer: peer}, nil
+	return &connection{
+		id:    id,
+		conn:  conn,
+		peer:  peer,
+		codec: protocol.NewCodec(),
+	}, nil
 }
 
 type connection struct {
@@ -22,29 +27,19 @@ type connection struct {
 	conn net.Conn
 	peer networkConfig.Peer
 
-	closeCh chan struct{}
+	codec protocol.Codec
 }
 
-func (c *connection) Loop() error {
-	codec := protocol.NewCodec()
-
-	for {
-		key, data, err := codec.Decode(c.conn)
-		if err != nil {
-			return err
-		}
-
-		if err := c.handler(key, data); err != nil {
-			return err
-		}
+func (c *connection) send(key string, data []byte) error {
+	encodedDdata, err := c.codec.Encode(key, data)
+	if err != nil {
+		return err
 	}
+
+	_, err = c.conn.Write(encodedDdata)
+	return err
 }
 
 func (c *connection) close() error {
-	defer close(c.closeCh)
-	return nil
-}
-
-func (c *connection) handler(key string, data []byte) error {
-	return nil
+	return c.conn.Close()
 }
