@@ -10,7 +10,7 @@ import (
 )
 
 type Manager interface {
-	Run()
+	Run(quit chan<- error)
 	UpdateConfig(config networkConfig.Config)
 
 	Available() []networkConfig.Peer
@@ -42,7 +42,7 @@ type manager struct {
 	unReadyCh chan networkConfig.Peer
 }
 
-func (m *manager) Run() {
+func (m *manager) Run(quit chan<- error) {
 	for peer := range m.peers {
 		conn, err := newConnection(m.id, peer)
 		if err != nil {
