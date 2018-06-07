@@ -1,7 +1,6 @@
 package synchronizer
 
 import (
-	"net"
 	"sync"
 
 	"github.com/yejiayu/go-cita/types"
@@ -22,8 +21,9 @@ type Synchronizer interface {
 	//          request is sent to other nodes to confirm that the current node has successfully
 	//          completed the data synchronization work.
 	// 3. The height is greater than the maximum height that has been synchronized, ie it is the latest data itself.
-	UpdateCurrentStatus(latestStatus *types.Status)
-	UpdateGlobalStatus(latestStatus *types.Status, origin net.IP)
+	UpdateCurrentStatus(latestStatus *types.Status) error
+	UpdateGlobalStatus(latestStatus *types.Status, origin uint32) error
+	ProcessSync(syncResponse *types.SyncResponse) error
 }
 
 func NewSynchronizer() Synchronizer {
@@ -44,10 +44,14 @@ type synchronizer struct {
 	LocalSyncCount uint8
 }
 
-func (s *synchronizer) UpdateCurrentStatus(latestStatus *types.Status) {
-
+func (s *synchronizer) UpdateCurrentStatus(latestStatus *types.Status) error {
+	return nil
 }
 
-func (s *synchronizer) UpdateGlobalStatus(latestStatus *types.Status, origin net.IP) {
+func (s *synchronizer) UpdateGlobalStatus(latestStatus *types.Status, origin uint32) error {
+	return nil
+}
 
+func (s *synchronizer) ProcessSync(syncResponse *types.SyncResponse) error {
+	return nil
 }

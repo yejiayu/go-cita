@@ -16,7 +16,7 @@ type Interface interface {
 }
 
 // New returns tcp listener.
-func New(port uint32) (Interface, error) {
+func New(handlers handlers.Interface, port uint32) (Interface, error) {
 	address := fmt.Sprintf("0.0.0.0:%d", port)
 	glog.Infof("network server listen address is %s", address)
 	listener, err := net.Listen("tcp", address)
@@ -26,7 +26,7 @@ func New(port uint32) (Interface, error) {
 
 	return &server{
 		listener: listener,
-		handler:  handlers.New(),
+		handler:  handlers,
 	}, nil
 }
 

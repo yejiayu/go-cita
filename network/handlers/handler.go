@@ -48,8 +48,27 @@ func New() Interface {
 func (h *handler) Call(key string, msg *protocol.Message) error {
 	switch key {
 	case synchronizerStatus:
+		status, err := msg.UnmarshalStatus()
+		if err != nil {
+			return err
+		}
 
+		return h.syncHandler.UpdateGlobalStatus(status, msg.Origin())
+
+	case chainStatus:
+		status, err := msg.UnmarshalStatus()
+		if err != nil {
+			return err
+		}
+
+		return h.syncHandler.UpdateCurrentStatus(status)
 	case synchronizerSyncResponse:
+		syncRes, err := msg.UnmarshalSyncResponse()
+		if err != nil {
+			return err
+		}
+
+		return h.syncHandler.ProcessSync(syncRes)
 	case synchronizerSyncRequest:
 	}
 

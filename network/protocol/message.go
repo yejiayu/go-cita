@@ -3,6 +3,10 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
+
+	"github.com/golang/protobuf/proto"
+
+	"github.com/yejiayu/go-cita/types"
 )
 
 // Message for communication between microservices or nodes.
@@ -96,4 +100,24 @@ func (m *Message) Raw() []byte {
 
 func (m *Message) Payload() []byte {
 	return m.payload
+}
+
+func (m *Message) UnmarshalStatus() (*types.Status, error) {
+	var status types.Status
+
+	if err := proto.Unmarshal(m.Payload(), &status); err != nil {
+		return nil, err
+	}
+
+	return &status, nil
+}
+
+func (m *Message) UnmarshalSyncResponse() (*types.SyncResponse, error) {
+	var res types.SyncResponse
+
+	if err := proto.Unmarshal(m.Payload(), &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
