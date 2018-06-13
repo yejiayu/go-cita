@@ -24,21 +24,3 @@ var (
 	OutOfBounds                = new("OutOfBounds")
 	Reverted                   = new("Reverted")
 )
-
-type ReceiptError interface {
-	Error() string
-}
-
-type receiptError struct {
-	message string
-}
-
-func new(message string) ReceiptError {
-	return &receiptError{
-		message: message,
-	}
-}
-
-func (e *receiptError) Error() string {
-	return e.message
-}

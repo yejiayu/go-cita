@@ -5,14 +5,21 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	networkConfig "github.com/yejiayu/go-cita/config/network"
+	"github.com/yejiayu/go-cita/mq"
+	"github.com/yejiayu/go-cita/network/protocol"
 )
 
 type Manager interface {
-	Run()
+	Run(quit chan<- error)
 	UpdateConfig(config networkConfig.Config)
 
 	Available() []networkConfig.Peer
+
+	Broadcast(key mq.RoutingKey, data []byte)
+	Single(key mq.RoutingKey, origin uint32, data []byte)
+	Subtract(key mq.RoutingKey, origin uint32, data []byte)
 }
 
 func NewManager(config networkConfig.Config) Manager {
@@ -39,7 +46,7 @@ type manager struct {
 	unReadyCh chan networkConfig.Peer
 }
 
-func (m *manager) Run() {
+func (m *manager) Run(quit chan<- error) {
 	for peer := range m.peers {
 		conn, err := newConnection(m.id, peer)
 		if err != nil {
@@ -90,6 +97,49 @@ func (m *manager) Available() []networkConfig.Peer {
 	}
 
 	return peers
+}
+
+func (m *manager) Broadcast(key mq.RoutingKey, data []byte) {
+	sendMsg := protocol.NewMessage(protocol.OpTypeBroadcast, m.id, data)
+
+	for peer, conn := range m.conns {
+		err := conn.send(key, sendMsg.Raw())
+		if err != nil {
+			glog.Errorf("network: the message send to %-v failed, %s\n", peer, err.Error())
+		}
+	}
+
+	return
+}
+
+func (m *manager) Single(key mq.RoutingKey, origin uint32, data []byte) {
+	sendMsg := protocol.NewMessage(protocol.OpTypeSingle, m.id, data)
+
+	for peer, conn := range m.conns {
+		if peer.ID == origin {
+			err := conn.send(key, sendMsg.Raw())
+			if err != nil {
+				glog.Errorf("network: the message send to %-v failed, %s\n", peer, err.Error())
+			}
+
+			return
+		}
+	}
+}
+
+func (m *manager) Subtract(key mq.RoutingKey, origin uint32, data []byte) {
+	sendMsg := protocol.NewMessage(protocol.OpTypeSubtract, m.id, data)
+
+	for peer, conn := range m.conns {
+		if peer.ID != origin {
+			err := conn.send(key, sendMsg.Raw())
+			if err != nil {
+				glog.Errorf("network: the message send to %-v failed, %s\n", peer, err.Error())
+			}
+
+			return
+		}
+	}
 }
 
 func (m *manager) checkReadied() {

@@ -1,16 +1,19 @@
 package protocol
 
 import (
-	"net"
-	"strconv"
-	"strings"
+	"bytes"
+	"encoding/binary"
+
+	"github.com/golang/protobuf/proto"
+
+	"github.com/yejiayu/go-cita/types"
 )
 
 // Message for communication between microservices or nodes.
 //
 // # Message in Bytes:
 //
-// +---------------------------------------------------------------+
+// +-------------`11`--------------------------------------------------+
 // | Bytes | Type | Function                                       |
 // |-------+------+------------------------------------------------|
 // |   0   |  u8  | Reserved (For Version?)                        |
@@ -40,46 +43,91 @@ const (
 	OpTypeSubtract  = 2
 )
 
-type Message struct {
-	Reserved1 uint8
-	Reserved2 uint8
-	Reserved3 uint8
-	Reserved4 uint8
-	Origin    uint32
-	Payload   []byte
+type Message interface {
+	Optype() OpType
+	Origin() uint32
+	Payload() []byte
+	Raw() []byte
+
+	UnmarshalStatus() (*types.Status, error)
+	UnmarshalSyncResponse() (*types.SyncResponse, error)
 }
 
-func NewMessage(opType OpType, origin net.IP, data []byte) *Message {
+func NewMessage(opType OpType, origin uint32, data []byte) Message {
 	reserved4 := (0 & 0xFC) + (uint8(opType) & 0x3)
 
-	return &Message{
-		Reserved1: 0,
-		Reserved2: 0,
-		Reserved3: 0,
-		Reserved4: reserved4,
-		Origin:    ipToInt32(origin),
-		Payload:   data,
+	return &message{
+		reserved1: 0,
+		reserved2: 0,
+		reserved3: 0,
+		reserved4: reserved4,
+		origin:    origin,
+		payload:   data,
 	}
 }
 
-func (m *Message) Optype() OpType {
-	return OpType(m.Reserved4 & 0x3)
+func NewMessageWithRaw(raw []byte) Message {
+	return &message{
+		reserved1: raw[0],
+		reserved2: raw[1],
+		reserved3: raw[2],
+		reserved4: raw[3],
+		origin:    binary.BigEndian.Uint32(raw[3:7]),
+		payload:   raw[7:],
+	}
 }
 
-// Deserialize with protobuf
-// func (m *Message) Payload()  {
-//
-// }
+type message struct {
+	reserved1 uint8
+	reserved2 uint8
+	reserved3 uint8
+	reserved4 uint8
+	origin    uint32
+	payload   []byte
+}
 
-func ipToInt32(ip net.IP) uint32 {
-	ips := strings.Split(ip.String(), ".")
+func (m *message) Optype() OpType {
+	return OpType(m.reserved4 & 0x3)
+}
 
-	var intIP uint32
-	for k, v := range ips {
-		i, _ := strconv.Atoi(v)
+func (m *message) Origin() uint32 {
+	return m.origin
+}
 
-		intIP = intIP | uint32(i)<<uint32(8*(3-k))
+func (m *message) Raw() []byte {
+	buf := bytes.NewBuffer(nil)
+	buf.WriteByte(byte(m.reserved1))
+	buf.WriteByte(byte(m.reserved2))
+	buf.WriteByte(byte(m.reserved3))
+	buf.WriteByte(byte(m.reserved4))
+
+	originBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(originBytes, m.origin)
+	buf.Write(originBytes)
+	buf.Write(m.payload)
+	return buf.Bytes()
+}
+
+func (m *message) Payload() []byte {
+	return m.payload
+}
+
+func (m *message) UnmarshalStatus() (*types.Status, error) {
+	var status types.Status
+
+	if err := proto.Unmarshal(m.Payload(), &status); err != nil {
+		return nil, err
 	}
 
-	return intIP
+	return &status, nil
+}
+
+func (m *message) UnmarshalSyncResponse() (*types.SyncResponse, error) {
+	var res types.SyncResponse
+
+	if err := proto.Unmarshal(m.Payload(), &res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
