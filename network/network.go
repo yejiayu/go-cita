@@ -59,20 +59,20 @@ func (n *network) handleServer(quit chan<- error) {
 }
 
 func (n *network) subQueue(quit chan<- error) {
-	ch, err := n.queue.Sub()
+	delivery, err := n.queue.Sub()
 	if err != nil {
 		quit <- err
 		return
 	}
 
-	for delivery := range ch {
-		go n.handlerMQ(&delivery)
+	for msg := range delivery {
+		go n.handleMQ(&msg)
 	}
 }
 
-func (n *network) handlerMQ(delivery *amqp.Delivery) {
-	key := mq.RoutingKey(delivery.RoutingKey)
-	data := delivery.Body
+func (n *network) handleMQ(msg *amqp.Delivery) {
+	key := mq.RoutingKey(msg.RoutingKey)
+	data := msg.Body
 
 	switch key {
 	case mq.AuthUntx:
