@@ -12,10 +12,15 @@ type MQ interface {
 	Call(key mq.RoutingKey, data []byte) error
 }
 
-func NewMQ(queue mq.Queue) MQ {
+func NewMQ(queue mq.Queue) (MQ, error) {
+	authLogic, err := logic.NewAuth()
+	if err != nil {
+		return nil, err
+	}
+
 	return &mqService{
 		queue:     queue,
-		authLogic: logic.NewAuth(),
+		authLogic: authLogic,
 	}
 }
 

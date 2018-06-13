@@ -12,11 +12,20 @@ type Interface interface {
 	Run(quit chan<- error)
 }
 
-func New(queue mq.Queue) Interface {
+func New(queue mq.Queue) (Interface, error) {
+	mqService, err := service.NewMQ(queue)
+	if err != nil {
+		return nil, err
+	}
+	rpcService, err := service.NewRPC(queue)
+	if err != nil {
+		return nil, err
+	}
+
 	return &auth{
 		queue:      queue,
-		mqService:  service.NewMQ(queue),
-		rpcService: service.NewRPC(queue),
+		mqService:  mqService,
+		rpcService: rpcService,
 	}
 }
 
