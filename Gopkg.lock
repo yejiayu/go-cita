@@ -8,8 +8,8 @@
     "common/hexutil",
     "crypto/sha3"
   ]
-  revision = "eae63c511ceafab14b92e274c1b18bf1700e2d3d"
-  version = "v1.8.10"
+  revision = "dea1ce052a10cd7d401a5c04f83f371a06fe293c"
+  version = "v1.8.11"
 
 [[projects]]
   branch = "master"
@@ -31,13 +31,13 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/tecbot/gorocksdb"
+  name = "github.com/streadway/amqp"
   packages = ["."]
-  revision = "3e476152774442234f9a9f747386a48a1d82a515"
+  revision = "e5adc2ada8b8efff032bf61173a233d143e9318e"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1abb7a57929362cf9528c2db6076df35d957903e11009e195090552f629a3cab"
+  inputs-digest = "d5f68404d11aa3d2041fb11043c10840a81486bdef01560e249072df18bcce42"
   solver-name = "gps-cdcl"
   solver-version = 1
