@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/yejiayu/go-cita/errors"
+	"github.com/yejiayu/go-cita/mq"
 )
 
 // Implementation of the multiplexed line-based protocol.
@@ -34,7 +35,7 @@ const startMsg = 0xDEADBEEF00000000
 // Codec definition of cita protocol parsing.
 type Codec interface {
 	Decode(read io.Reader) (string, []byte, error)
-	Encode(key string, data []byte) ([]byte, error)
+	Encode(key mq.RoutingKey, data []byte) ([]byte, error)
 }
 
 func NewCodec() Codec {
@@ -79,7 +80,7 @@ func (c codec) Decode(read io.Reader) (string, []byte, error) {
 	}
 }
 
-func (c codec) Encode(key string, data []byte) ([]byte, error) {
+func (c codec) Encode(key mq.RoutingKey, data []byte) ([]byte, error) {
 	keyLen := uint8(len(key))
 
 	// Use 1 bytes to store the length for key, then store key, the last part is body.

@@ -43,19 +43,20 @@ const (
 	OpTypeSubtract  = 2
 )
 
-type Message struct {
-	reserved1 uint8
-	reserved2 uint8
-	reserved3 uint8
-	reserved4 uint8
-	origin    uint32
-	payload   []byte
+type Message interface {
+	Optype() OpType
+	Origin() uint32
+	Payload() []byte
+	Raw() []byte
+
+	UnmarshalStatus() (*types.Status, error)
+	UnmarshalSyncResponse() (*types.SyncResponse, error)
 }
 
-func NewMessage(opType OpType, origin uint32, data []byte) *Message {
+func NewMessage(opType OpType, origin uint32, data []byte) Message {
 	reserved4 := (0 & 0xFC) + (uint8(opType) & 0x3)
 
-	return &Message{
+	return &message{
 		reserved1: 0,
 		reserved2: 0,
 		reserved3: 0,
@@ -65,8 +66,8 @@ func NewMessage(opType OpType, origin uint32, data []byte) *Message {
 	}
 }
 
-func NewMessageWithRaw(raw []byte) *Message {
-	return &Message{
+func NewMessageWithRaw(raw []byte) Message {
+	return &message{
 		reserved1: raw[0],
 		reserved2: raw[1],
 		reserved3: raw[2],
@@ -76,15 +77,24 @@ func NewMessageWithRaw(raw []byte) *Message {
 	}
 }
 
-func (m *Message) Optype() OpType {
+type message struct {
+	reserved1 uint8
+	reserved2 uint8
+	reserved3 uint8
+	reserved4 uint8
+	origin    uint32
+	payload   []byte
+}
+
+func (m *message) Optype() OpType {
 	return OpType(m.reserved4 & 0x3)
 }
 
-func (m *Message) Origin() uint32 {
+func (m *message) Origin() uint32 {
 	return m.origin
 }
 
-func (m *Message) Raw() []byte {
+func (m *message) Raw() []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteByte(byte(m.reserved1))
 	buf.WriteByte(byte(m.reserved2))
@@ -98,11 +108,11 @@ func (m *Message) Raw() []byte {
 	return buf.Bytes()
 }
 
-func (m *Message) Payload() []byte {
+func (m *message) Payload() []byte {
 	return m.payload
 }
 
-func (m *Message) UnmarshalStatus() (*types.Status, error) {
+func (m *message) UnmarshalStatus() (*types.Status, error) {
 	var status types.Status
 
 	if err := proto.Unmarshal(m.Payload(), &status); err != nil {
@@ -112,7 +122,7 @@ func (m *Message) UnmarshalStatus() (*types.Status, error) {
 	return &status, nil
 }
 
-func (m *Message) UnmarshalSyncResponse() (*types.SyncResponse, error) {
+func (m *message) UnmarshalSyncResponse() (*types.SyncResponse, error) {
 	var res types.SyncResponse
 
 	if err := proto.Unmarshal(m.Payload(), &res); err != nil {

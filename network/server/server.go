@@ -7,16 +7,21 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/yejiayu/go-cita/network/handlers"
 	"github.com/yejiayu/go-cita/network/protocol"
 )
 
+type PeerMessage struct {
+	Key     string
+	Message protocol.Message
+}
+
 type Interface interface {
 	Run(quit chan<- error)
+	Message() *PeerMessage
 }
 
 // New returns tcp listener.
-func New(handlers handlers.Interface, port uint32) (Interface, error) {
+func New(port uint32) (Interface, error) {
 	address := fmt.Sprintf("0.0.0.0:%d", port)
 	glog.Infof("network server listen address is %s", address)
 	listener, err := net.Listen("tcp", address)
@@ -26,13 +31,15 @@ func New(handlers handlers.Interface, port uint32) (Interface, error) {
 
 	return &server{
 		listener: listener,
-		handler:  handlers,
+
+		MessageCh: make(chan *PeerMessage, 10),
 	}, nil
 }
 
 type server struct {
 	listener net.Listener
-	handler  handlers.Interface
+
+	MessageCh chan *PeerMessage
 }
 
 func (s *server) Run(quit chan<- error) {
@@ -45,7 +52,7 @@ func (s *server) Run(quit chan<- error) {
 
 		glog.Infof("accept conn from %s", conn.RemoteAddr().String())
 		go func() {
-			if err := s.Handler(conn); err != nil {
+			if err := s.handler(conn); err != nil {
 				if err != io.EOF {
 					glog.Error(err)
 					conn.Close()
@@ -55,7 +62,11 @@ func (s *server) Run(quit chan<- error) {
 	}
 }
 
-func (s *server) Handler(conn net.Conn) error {
+func (s *server) Message() *PeerMessage {
+	return <-s.MessageCh
+}
+
+func (s *server) handler(conn net.Conn) error {
 	codec := protocol.NewCodec()
 
 	for {
@@ -64,10 +75,9 @@ func (s *server) Handler(conn net.Conn) error {
 			return err
 		}
 
-		go func() {
-			if err := s.handler.Call(key, protocol.NewMessageWithRaw(data)); err != nil {
-				glog.Error(err)
-			}
-		}()
+		s.MessageCh <- &PeerMessage{
+			Key:     key,
+			Message: protocol.NewMessageWithRaw(data),
+		}
 	}
 }

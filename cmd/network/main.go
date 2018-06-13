@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 	networkConfig "github.com/yejiayu/go-cita/config/network"
+	"github.com/yejiayu/go-cita/mq"
 	"github.com/yejiayu/go-cita/network"
 )
 
@@ -17,7 +18,15 @@ func main() {
 		Port: 8001,
 	}
 
-	n, err := network.New(config)
+	subKeys := []mq.RoutingKey{
+		mq.AuthUntx,
+	}
+	queue, err := mq.New("amqp://guest:guest@localhost:5672", "network", subKeys)
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	n, err := network.New(config, queue)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -25,6 +34,7 @@ func main() {
 	quit := make(chan error)
 	n.Run(quit)
 
+	glog.Info("network start")
 	if err := <-quit; err != nil {
 		glog.Fatal(err)
 	}

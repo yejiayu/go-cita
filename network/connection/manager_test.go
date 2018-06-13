@@ -18,7 +18,7 @@ func TestManager(t *testing.T) {
 		},
 	}
 	m := NewManager(config)
-	m.Run()
+	m.Run(make(chan error))
 
 	peers := m.Available()
 	if len(peers) != 1 {
