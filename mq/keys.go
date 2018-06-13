@@ -7,7 +7,7 @@ type RoutingKey string
 const (
 	NetworkSyncBlock = "sync.blocks"
 
-	NetworkVerifyTxRequest = "net.NetworkVerifyTxRequest"
+	NetworkUnverifiedTx = "net.unverified_tx"
 )
 
 // chain
@@ -17,5 +17,5 @@ const (
 
 // auth
 const (
-	AuthVerifyTxResponse = "auth.verify_tx_response"
+	AuthUnverifiedTx = "auth.unverified_tx"
 )
