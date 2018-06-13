@@ -2,9 +2,9 @@
 > A Go implementation of CITA
 
 ## Check list
-- [ ] chain (progress)
-- [ ] auth
+- [ ] chain
+- [ ] auth (30%)
 - [ ] consensus (bft)
 - [ ] executor
-- [ ] network
+- [ ] network (80%)
 - [ ] rpc
