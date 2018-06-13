@@ -9,6 +9,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	"github.com/yejiayu/go-cita/auth/pool"
 	"github.com/yejiayu/go-cita/types"
@@ -29,21 +30,25 @@ type auth struct {
 	chainID         uint32
 	blockQuotaLimit uint64
 
-	// TODO: from cache(redis)
-	pkCache map[common.Hash]*ecdsa.PublicKey
-
+	cache  *cache
 	txPool pool.TxPool
 }
 
-func NewAuth() Auth {
+func NewAuth() (Auth, error) {
+	cache, err := newCache()
+	if err != nil {
+		return nil, err
+	}
+
 	return &auth{
 		txPool: pool.NewTxPool(),
-	}
+		cache:  cache,
+	}, nil
 }
 
-func (l *auth) Untx(untx *types.UnverifiedTransaction) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+func (a *auth) Untx(untx *types.UnverifiedTransaction) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	tx := untx.GetTransaction()
 	data, err := proto.Marshal(untx.GetTransaction())
@@ -52,20 +57,22 @@ func (l *auth) Untx(untx *types.UnverifiedTransaction) error {
 	}
 
 	txHash := common.BytesToHash(data)
-	pk, ok := l.pkCache[txHash]
-	if !ok {
-		var err error
-		pk, err = l.verifyTxSig(txHash.Bytes(), untx.GetSignature(), untx.GetCrypto())
+	pk, err := a.cache.getPublicKey(txHash)
+	if err != nil {
+		glog.Error(err)
+	}
+	if pk == nil {
+		pk, err = a.verifyTxSig(txHash.Bytes(), untx.GetSignature(), untx.GetCrypto())
 		if err != nil {
 			return err
 		}
 
-		l.pkCache[txHash] = pk
+		a.cache.setPublicKey(txHash, pk)
 	}
 
 	//TODO: black verify
 
-	if err := l.checkTxParams(tx, pk); err != nil {
+	if err := a.checkTxParams(tx, pk); err != nil {
 		return err
 	}
 
@@ -75,7 +82,7 @@ func (l *auth) Untx(untx *types.UnverifiedTransaction) error {
 		Signer:             ethcrypto.CompressPubkey(pk),
 	}
 
-	return l.txPool.Add(signTx)
+	return a.txPool.Add(signTx)
 }
 
 func (a *auth) checkTxParams(tx *types.Transaction, signer *ecdsa.PublicKey) error {

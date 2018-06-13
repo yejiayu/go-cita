@@ -9,16 +9,21 @@ type RPC interface {
 	Call(key mq.RoutingKey, data []byte, out interface{}) error
 }
 
-func NewRPC(queue mq.Queue) RPC {
+func NewRPC(queue mq.Queue) (RPC, error) {
+	authLogic, err := logic.NewAuth()
+	if err != nil {
+		return nil, err
+	}
+
 	return &rpcService{
-		queue: queue,
-		logic: logic.NewAuth(),
+		queue:     queue,
+		authLogic: authLogic,
 	}
 }
 
 type rpcService struct {
-	queue mq.Queue
-	logic logic.Auth
+	queue     mq.Queue
+	authLogic logic.Auth
 }
 
 func (h *rpcService) Call(key mq.RoutingKey, data []byte, out interface{}) error {
