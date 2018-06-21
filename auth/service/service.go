@@ -47,7 +47,7 @@ func NewService(dbFactory database.Factory) (Service, error) {
 		cache:     cache,
 		txDB:      dbFactory.TxDB(),
 		blockDB:   dbFactory.BlockDB(),
-		historyTx: newHistoryTx(),
+		historyTx: newHistoryTx(cache),
 	}
 
 	return s, nil
@@ -76,7 +76,7 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 
 	//TODO: black verify
 
-	if err := s.checkTxParams(tx, pk); err != nil {
+	if err := s.checkTxParams(tx, pk, txHash); err != nil {
 		return err
 	}
 
@@ -99,7 +99,7 @@ func (s *service) AddBlock(height uint64) error {
 	return nil
 }
 
-func (s *service) checkTxParams(tx *types.Transaction, signer *ecdsa.PublicKey) error {
+func (s *service) checkTxParams(tx *types.Transaction, signer *ecdsa.PublicKey, txHash common.Hash) error {
 	if tx.ChainId != s.chainID {
 		return errors.New("bad chain id")
 	}
@@ -112,6 +112,10 @@ func (s *service) checkTxParams(tx *types.Transaction, signer *ecdsa.PublicKey) 
 		return err
 	}
 
+	if err := s.checkHistoryTxs(txHash); err != nil {
+		return err
+	}
+
 	if err := s.checkQuota(tx.Quota, ethcrypto.PubkeyToAddress(*signer)); err != nil {
 		return err
 	}
@@ -120,7 +124,7 @@ func (s *service) checkTxParams(tx *types.Transaction, signer *ecdsa.PublicKey) 
 }
 
 func (s *service) checkValidUntilBlock(validUntilBlock uint64) error {
-	if validUntilBlock < s.historyTx.maxHeight+1 || validUntilBlock >= (s.historyTx.maxHeight+1+100) {
+	if validUntilBlock < s.historyTx.maxHeight+1 || validUntilBlock >= (s.historyTx.maxHeight+1+validUntilBlockLimit) {
 		return errors.New("invalid until block")
 	}
 
@@ -128,10 +132,13 @@ func (s *service) checkValidUntilBlock(validUntilBlock uint64) error {
 }
 
 func (s *service) checkHistoryTxs(hash common.Hash) error {
-	if s.historyTx.Contains(hash) {
+	exists, err := s.historyTx.Contains(hash)
+	if err != nil {
+		return err
+	}
+	if exists {
 		return errors.New("tx dup")
 	}
-
 	return nil
 }
 
