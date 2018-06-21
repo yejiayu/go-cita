@@ -5,7 +5,8 @@ type RoutingKey string
 
 // network
 const (
-	NetworkSyncBlock = "sync.blocks"
+	SyncUnverifiedTx = "sync.unverified_tx"
+	SyncBlock        = "sync.blocks"
 
 	NetworkUnverifiedTx = "net.unverified_tx"
 )

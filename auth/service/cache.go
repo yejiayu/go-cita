@@ -1,4 +1,4 @@
-package logic
+package service
 
 import (
 	"crypto/ecdsa"
@@ -9,7 +9,7 @@ import (
 )
 
 func newCache() (*cache, error) {
-	client, err := redis.DialURL("127.0.0.1:6379")
+	client, err := redis.DialURL("redis://127.0.0.1:6379")
 	if err != nil {
 		return nil, err
 	}
