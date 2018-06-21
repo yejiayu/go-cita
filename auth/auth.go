@@ -5,6 +5,7 @@ import (
 	"github.com/streadway/amqp"
 
 	"github.com/yejiayu/go-cita/auth/service"
+	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/mq"
 )
 
@@ -12,28 +13,24 @@ type Interface interface {
 	Run(quit chan<- error)
 }
 
-func New(queue mq.Queue) (Interface, error) {
-	mqService, err := service.NewMQ(queue)
-	if err != nil {
-		return nil, err
-	}
-	rpcService, err := service.NewRPC(queue)
+func New(queue mq.Queue, dbFactory database.Factory) (Interface, error) {
+	srv, err := service.NewService(dbFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	return &auth{
 		queue:      queue,
-		mqService:  mqService,
-		rpcService: rpcService,
-	}
+		mqHandler:  newMQ(queue, srv),
+		rpcHandler: newRPC(queue, srv),
+	}, nil
 }
 
 type auth struct {
 	queue mq.Queue
 
-	mqService  service.MQ
-	rpcService service.RPC
+	mqHandler  *mqHandler
+	rpcHandler *rpcHandler
 }
 
 func (a *auth) Run(quit chan<- error) {
@@ -52,7 +49,7 @@ func (a *auth) loopMQ(quit chan<- error) {
 			key := mq.RoutingKey(msg.RoutingKey)
 			data := msg.Body
 
-			if err := a.mqService.Call(key, data); err != nil {
+			if err := a.mqHandler.Call(key, data); err != nil {
 				glog.Error(err)
 				msg.Ack(false)
 			} else {

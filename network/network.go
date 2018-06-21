@@ -52,8 +52,8 @@ func (n *network) handleServer(quit chan<- error) {
 		m := n.server.Message()
 
 		switch mq.RoutingKey(m.Key) {
-		case mq.NetworkUntx:
-			n.queue.Pub(mq.NetworkUntx, m.Message.Payload())
+		case mq.SyncUnverifiedTx:
+			n.queue.Pub(mq.NetworkUnverifiedTx, m.Message.Payload())
 		}
 	}
 }
@@ -75,7 +75,7 @@ func (n *network) handleMQ(msg *amqp.Delivery) {
 	data := msg.Body
 
 	switch key {
-	case mq.AuthUntx:
-		n.connManager.Broadcast(key, data)
+	case mq.AuthUnverifiedTx:
+		n.connManager.Broadcast(mq.SyncUnverifiedTx, data)
 	}
 }
