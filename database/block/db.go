@@ -11,11 +11,14 @@ import (
 var (
 	headerPrefix = byte(10)
 	bodyPrefix   = byte(11)
+
+	latestHeader = []byte("block.header.latest")
 )
 
 type Interface interface {
 	GetHeaderByHeight(height uint64) (*types.BlockHeader, error)
 	GetBodyByHeight(height uint64) (*types.BlockBody, error)
+	GetHeaderByLatest() (*types.BlockHeader, error)
 }
 
 func New(rawDB raw.Interface) Interface {
@@ -51,6 +54,20 @@ func (db *blockDB) GetBodyByHeight(height uint64) (*types.BlockBody, error) {
 	}
 
 	return &body, nil
+}
+
+func (db *blockDB) GetHeaderByLatest() (*types.BlockHeader, error) {
+	data, err := db.rawDB.Get(latestHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	var header types.BlockHeader
+	if err := proto.Unmarshal(data, &header); err != nil {
+		return nil, err
+	}
+
+	return &header, nil
 }
 
 // func (db *blockDB) Scan(startHeight uint64, limit int) ([]*types.Block, error) {
