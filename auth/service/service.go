@@ -90,12 +90,12 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 }
 
 func (s *service) AddBlock(height uint64) error {
-	block, err := s.blockDB.GetByHeight(height)
+	body, err := s.blockDB.GetBodyByHeight(height)
 	if err != nil {
 		return err
 	}
 
-	s.historyTx.AddBlock(block)
+	s.historyTx.AddTxs(height, body.GetTransactions())
 	return nil
 }
 

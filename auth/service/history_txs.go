@@ -16,14 +16,13 @@ func newHistoryTx(cache *cache) *historyTx {
 	}
 }
 
-func (ht *historyTx) AddBlock(b *types.Block) error {
-	height := b.Header.Height
+func (ht *historyTx) AddTxs(height uint64, txs []*types.SignedTransaction) error {
 	if ht.maxHeight > height {
 		return nil
 	}
 
 	hashes := []common.Hash{}
-	for _, signtx := range b.Body.Transactions {
+	for _, signtx := range txs {
 		hashes = append(hashes, common.BytesToHash(signtx.GetTxHash()))
 		if len(hashes) > 100 {
 			if err := ht.cache.setHistoryTx(height, hashes); err != nil {
