@@ -29,10 +29,14 @@ func (db *txDB) AddPool(signedTx *types.SignedTransaction) error {
 		return err
 	}
 
-	key := addPrefix(signedTx.GetTxHash())
+	key := txPoolKey(signedTx.GetTxHash())
 	return db.rawDB.Put(key, data)
 }
 
-func addPrefix(key []byte) []byte {
-	return append([]byte{txPoolPrefix}, key...)
+func txPoolKey(key []byte) []byte {
+	return joinKey(txPoolPrefix, key)
+}
+
+func joinKey(prefix byte, key []byte) []byte {
+	return append(append([]byte{prefix}, []byte(".")...), key...)
 }

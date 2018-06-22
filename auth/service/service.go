@@ -79,11 +79,11 @@ func (s *service) init() error {
 	return nil
 }
 
-func (s *service) Untx(untx *types.UnverifiedTransaction) error {
+func (s *service) Untx(untx *types.UnverifiedTransaction) (common.Hash, error) {
 	tx := untx.GetTransaction()
 	data, err := proto.Marshal(untx.GetTransaction())
 	if err != nil {
-		return err
+		return common.Hash{}, err
 	}
 
 	txHash := common.BytesToHash(data)
@@ -94,7 +94,7 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 	if pk == nil {
 		pk, err = s.verifyTxSig(txHash.Bytes(), untx.GetSignature(), untx.GetCrypto())
 		if err != nil {
-			return err
+			return common.Hash{}, err
 		}
 
 		s.cache.setPublicKey(txHash, pk)
@@ -103,7 +103,7 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 	//TODO: black verify
 
 	if err := s.checkTxParams(tx, pk, txHash); err != nil {
-		return err
+		return common.Hash{}, err
 	}
 
 	signTx := &types.SignedTransaction{
@@ -112,7 +112,11 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 		Signer:             ethcrypto.CompressPubkey(pk),
 	}
 
-	return s.txDB.AddPool(signTx)
+	if err := s.txDB.AddPool(signTx); err != nil {
+		return common.Hash{}, err
+	}
+
+	return txHash, nil
 }
 
 func (s *service) AddBlock(height uint64) error {
