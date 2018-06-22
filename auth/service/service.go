@@ -1,3 +1,18 @@
+// Copyright (C) 2018 yejiayu
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package service
 
 import (
@@ -17,7 +32,7 @@ import (
 )
 
 type Service interface {
-	Untx(untx *types.UnverifiedTransaction) error
+	Untx(untx *types.UnverifiedTransaction) (common.Hash, error)
 	AddBlock(height uint64) error
 }
 
@@ -79,11 +94,11 @@ func (s *service) init() error {
 	return nil
 }
 
-func (s *service) Untx(untx *types.UnverifiedTransaction) error {
+func (s *service) Untx(untx *types.UnverifiedTransaction) (common.Hash, error) {
 	tx := untx.GetTransaction()
 	data, err := proto.Marshal(untx.GetTransaction())
 	if err != nil {
-		return err
+		return common.Hash{}, err
 	}
 
 	txHash := common.BytesToHash(data)
@@ -94,7 +109,7 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 	if pk == nil {
 		pk, err = s.verifyTxSig(txHash.Bytes(), untx.GetSignature(), untx.GetCrypto())
 		if err != nil {
-			return err
+			return common.Hash{}, err
 		}
 
 		s.cache.setPublicKey(txHash, pk)
@@ -103,7 +118,7 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 	//TODO: black verify
 
 	if err := s.checkTxParams(tx, pk, txHash); err != nil {
-		return err
+		return common.Hash{}, err
 	}
 
 	signTx := &types.SignedTransaction{
@@ -112,7 +127,11 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 		Signer:             ethcrypto.CompressPubkey(pk),
 	}
 
-	return s.txDB.AddPool(signTx)
+	if err := s.txDB.AddPool(signTx); err != nil {
+		return common.Hash{}, err
+	}
+
+	return txHash, nil
 }
 
 func (s *service) AddBlock(height uint64) error {
