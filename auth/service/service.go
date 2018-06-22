@@ -50,7 +50,33 @@ func NewService(dbFactory database.Factory) (Service, error) {
 		historyTx: newHistoryTx(cache),
 	}
 
+	if err := s.init(); err != nil {
+		return nil, err
+	}
 	return s, nil
+}
+
+func (s *service) init() error {
+	h, err := s.blockDB.GetHeaderByLatest()
+	if err != nil {
+		return err
+	}
+
+	var step uint64
+	for step < 100 || (h.Height-step) > 0 {
+		height := h.Height - step
+		b, err := s.blockDB.GetBodyByHeight(height)
+		if err != nil {
+			return err
+		}
+
+		if err := s.historyTx.AddTxs(height, b.GetTransactions()); err != nil {
+			return err
+		}
+		step++
+	}
+
+	return nil
 }
 
 func (s *service) Untx(untx *types.UnverifiedTransaction) error {
@@ -90,12 +116,12 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) error {
 }
 
 func (s *service) AddBlock(height uint64) error {
-	block, err := s.blockDB.GetByHeight(height)
+	body, err := s.blockDB.GetBodyByHeight(height)
 	if err != nil {
 		return err
 	}
 
-	s.historyTx.AddBlock(block)
+	s.historyTx.AddTxs(height, body.GetTransactions())
 	return nil
 }
 

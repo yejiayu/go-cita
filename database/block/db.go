@@ -9,12 +9,16 @@ import (
 )
 
 var (
-	blockPrefix = byte(10)
+	headerPrefix = byte(10)
+	bodyPrefix   = byte(11)
+
+	latestHeader = []byte("block.header.latest")
 )
 
 type Interface interface {
-	GetByHeight(height uint64) (*types.Block, error)
-	Scan(startHeight uint64, limit int) ([]*types.Block, error)
+	GetHeaderByHeight(height uint64) (*types.BlockHeader, error)
+	GetBodyByHeight(height uint64) (*types.BlockBody, error)
+	GetHeaderByLatest() (*types.BlockHeader, error)
 }
 
 func New(rawDB raw.Interface) Interface {
@@ -25,40 +29,78 @@ type blockDB struct {
 	rawDB raw.Interface
 }
 
-func (db *blockDB) GetByHeight(height uint64) (*types.Block, error) {
-	data, err := db.rawDB.Get(blockKey(height))
+func (db *blockDB) GetHeaderByHeight(height uint64) (*types.BlockHeader, error) {
+	data, err := db.rawDB.Get(headerKey(height))
 	if err != nil {
 		return nil, err
 	}
 
-	var block types.Block
-	if err := proto.Unmarshal(data, &block); err != nil {
+	var h types.BlockHeader
+	if err := proto.Unmarshal(data, &h); err != nil {
 		return nil, err
 	}
-	return &block, nil
+	return &h, nil
 }
 
-func (db *blockDB) Scan(startHeight uint64, limit int) ([]*types.Block, error) {
-	_, values, err := db.rawDB.Scan(blockKey(startHeight), limit)
+func (db *blockDB) GetBodyByHeight(height uint64) (*types.BlockBody, error) {
+	data, err := db.rawDB.Get(bodyKey(height))
 	if err != nil {
 		return nil, err
 	}
 
-	var bs []*types.Block
-	for _, value := range values {
-		var b types.Block
-		if err := proto.Unmarshal(value, &b); err != nil {
-			return nil, err
-		}
-
-		bs = append(bs, &b)
+	var body types.BlockBody
+	if err := proto.Unmarshal(data, &body); err != nil {
+		return nil, err
 	}
 
-	return bs, nil
+	return &body, nil
 }
 
-func blockKey(height uint64) []byte {
+func (db *blockDB) GetHeaderByLatest() (*types.BlockHeader, error) {
+	data, err := db.rawDB.Get(latestHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	var header types.BlockHeader
+	if err := proto.Unmarshal(data, &header); err != nil {
+		return nil, err
+	}
+
+	return &header, nil
+}
+
+// func (db *blockDB) Scan(startHeight uint64, limit int) ([]*types.Block, error) {
+// 	_, values, err := db.rawDB.Scan(blockKey(startHeight), limit)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	var bs []*types.Block
+// 	for _, value := range values {
+// 		var b types.Block
+// 		if err := proto.Unmarshal(value, &b); err != nil {
+// 			return nil, err
+// 		}
+//
+// 		bs = append(bs, &b)
+// 	}
+//
+// 	return bs, nil
+// }
+
+func headerKey(height uint64) []byte {
 	var key []byte
 	binary.BigEndian.PutUint64(key, height)
-	return append([]byte{blockPrefix}, key...)
+	return joinKey(headerPrefix, key)
+}
+
+func bodyKey(height uint64) []byte {
+	var key []byte
+	binary.BigEndian.PutUint64(key, height)
+	return joinKey(bodyPrefix, key)
+}
+
+func joinKey(prefix byte, key []byte) []byte {
+	return append(append([]byte{prefix}, []byte(".")...), key...)
 }
