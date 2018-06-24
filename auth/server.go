@@ -13,16 +13,35 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package auth
 
 import (
-	"log"
+	"context"
 
-	"github.com/yejiayu/go-cita/rpc"
+	"google.golang.org/grpc"
+
+	"github.com/yejiayu/go-cita/auth/service"
+	"github.com/yejiayu/go-cita/types"
 )
 
-func main() {
-	if err := rpc.New(":8080"); err != nil {
-		log.Fatal(err)
+func newServer(srv service.Service) *grpc.Server {
+	s := grpc.NewServer()
+	types.RegisterAuthServer(s, &server{srv: srv})
+	return s
+}
+
+// AuthServer is the server API for Auth service.
+type server struct {
+	srv service.Service
+}
+
+func (s *server) SendTransaction(ctx context.Context, untx *types.UnverifiedTransaction) (*types.SendTransactionReply, error) {
+	hash, err := s.srv.Untx(untx)
+	if err != nil {
+		return nil, err
 	}
+
+	return &types.SendTransactionReply{
+		TxHash: hash.Bytes(),
+	}, nil
 }
