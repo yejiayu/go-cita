@@ -30,17 +30,6 @@ type codecPDClient struct {
 func (c *codecPDClient) GetRegion(ctx context.Context, key []byte) (*metapb.Region, *metapb.Peer, error) {
 	encodedKey := codec.EncodeBytes([]byte(nil), key)
 	region, peer, err := c.Client.GetRegion(ctx, encodedKey)
-	return processRegionResult(region, peer, err)
-}
-
-// GetRegion encodes the key before send requests to pd-server and decodes the
-// returned StartKey && EndKey from pd-server.
-func (c *codecPDClient) GetRegionByID(ctx context.Context, regionID uint64) (*metapb.Region, *metapb.Peer, error) {
-	region, peer, err := c.Client.GetRegionByID(ctx, regionID)
-	return processRegionResult(region, peer, err)
-}
-
-func processRegionResult(region *metapb.Region, peer *metapb.Peer, err error) (*metapb.Region, *metapb.Peer, error) {
 	if err != nil {
 		return nil, nil, errors.Trace(err)
 	}
@@ -56,14 +45,14 @@ func processRegionResult(region *metapb.Region, peer *metapb.Peer, err error) (*
 
 func decodeRegionMetaKey(r *metapb.Region) error {
 	if len(r.StartKey) != 0 {
-		_, decoded, err := codec.DecodeBytes(r.StartKey, nil)
+		_, decoded, err := codec.DecodeBytes(r.StartKey)
 		if err != nil {
 			return errors.Trace(err)
 		}
 		r.StartKey = decoded
 	}
 	if len(r.EndKey) != 0 {
-		_, decoded, err := codec.DecodeBytes(r.EndKey, nil)
+		_, decoded, err := codec.DecodeBytes(r.EndKey)
 		if err != nil {
 			return errors.Trace(err)
 		}

@@ -14,12 +14,12 @@
 package tikv
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
 	pb "github.com/pingcap/kvproto/pkg/kvrpcpb"
 	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/store/tikv/tikvrpc"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
+	goctx "golang.org/x/net/context"
 )
 
 // Scanner support tikv scan
@@ -74,7 +74,7 @@ func (s *Scanner) Value() []byte {
 
 // Next return next element.
 func (s *Scanner) Next() error {
-	bo := NewBackoffer(context.Background(), scannerNextMaxBackoff)
+	bo := NewBackoffer(scannerNextMaxBackoff, goctx.Background())
 	if !s.valid {
 		return errors.New("scanner iterator is invalid")
 	}
@@ -151,7 +151,7 @@ func (s *Scanner) getData(bo *Backoffer) error {
 				NotFillCache:   s.snapshot.notFillCache,
 			},
 		}
-		resp, err := sender.SendReq(bo, req, loc.Region, ReadTimeoutMedium)
+		resp, err := sender.SendReq(bo, req, loc.Region, readTimeoutMedium)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -161,7 +161,7 @@ func (s *Scanner) getData(bo *Backoffer) error {
 		}
 		if regionErr != nil {
 			log.Debugf("scanner getData failed: %s", regionErr)
-			err = bo.Backoff(BoRegionMiss, errors.New(regionErr.String()))
+			err = bo.Backoff(boRegionMiss, errors.New(regionErr.String()))
 			if err != nil {
 				return errors.Trace(err)
 			}
@@ -169,7 +169,7 @@ func (s *Scanner) getData(bo *Backoffer) error {
 		}
 		cmdScanResp := resp.Scan
 		if cmdScanResp == nil {
-			return errors.Trace(ErrBodyMissing)
+			return errors.Trace(errBodyMissing)
 		}
 
 		err = s.snapshot.store.CheckVisibility(s.startTS())

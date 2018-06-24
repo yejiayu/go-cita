@@ -17,15 +17,13 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
-	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/cznic/mathutil"
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/meta"
-	"github.com/pingcap/tidb/metrics"
 	"github.com/pingcap/tidb/terror"
-	log "github.com/sirupsen/logrus"
 )
 
 // Test needs to change it, so it's a variable.
@@ -43,10 +41,6 @@ type Allocator interface {
 	// If allocIDs is true, it will allocate some IDs and save to the cache.
 	// If allocIDs is false, it will not allocate IDs.
 	Rebase(tableID, newBase int64, allocIDs bool) error
-	// Base return the current base of Allocator.
-	Base() int64
-	// End is only used for test.
-	End() int64
 	// NextGlobalAutoID returns the next global autoID.
 	NextGlobalAutoID(tableID int64) (int64, error)
 }
@@ -70,27 +64,15 @@ func SetStep(s int64) {
 	step = s
 }
 
-// Base implements autoid.Allocator Base interface.
-func (alloc *allocator) Base() int64 {
-	return alloc.base
-}
-
-// End implements autoid.Allocator End interface.
-func (alloc *allocator) End() int64 {
-	return alloc.end
-}
-
 // NextGlobalAutoID implements autoid.Allocator NextGlobalAutoID interface.
 func (alloc *allocator) NextGlobalAutoID(tableID int64) (int64, error) {
 	var autoID int64
-	startTime := time.Now()
 	err := kv.RunInNewTxn(alloc.store, true, func(txn kv.Transaction) error {
 		var err1 error
 		m := meta.NewMeta(txn)
 		autoID, err1 = m.GetAutoTableID(alloc.dbID, tableID)
 		return errors.Trace(err1)
 	})
-	metrics.AutoIDHistogram.WithLabelValues(metrics.GlobalAutoID, metrics.RetLabel(err)).Observe(time.Since(startTime).Seconds())
 	return autoID + 1, errors.Trace(err)
 }
 
@@ -114,7 +96,6 @@ func (alloc *allocator) Rebase(tableID, requiredBase int64, allocIDs bool) error
 		return nil
 	}
 	var newBase, newEnd int64
-	startTime := time.Now()
 	err := kv.RunInNewTxn(alloc.store, true, func(txn kv.Transaction) error {
 		m := meta.NewMeta(txn)
 		currentEnd, err1 := m.GetAutoTableID(alloc.dbID, tableID)
@@ -140,7 +121,6 @@ func (alloc *allocator) Rebase(tableID, requiredBase int64, allocIDs bool) error
 		_, err1 = m.GenAutoTableID(alloc.dbID, tableID, newEnd-currentEnd)
 		return errors.Trace(err1)
 	})
-	metrics.AutoIDHistogram.WithLabelValues(metrics.TableAutoIDRebase, metrics.RetLabel(err)).Observe(time.Since(startTime).Seconds())
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -157,7 +137,6 @@ func (alloc *allocator) Alloc(tableID int64) (int64, error) {
 	defer alloc.mu.Unlock()
 	if alloc.base == alloc.end { // step
 		var newBase, newEnd int64
-		startTime := time.Now()
 		err := kv.RunInNewTxn(alloc.store, true, func(txn kv.Transaction) error {
 			m := meta.NewMeta(txn)
 			var err1 error
@@ -171,7 +150,7 @@ func (alloc *allocator) Alloc(tableID int64) (int64, error) {
 			}
 			return nil
 		})
-		metrics.AutoIDHistogram.WithLabelValues(metrics.TableAutoIDAlloc, metrics.RetLabel(err)).Observe(time.Since(startTime).Seconds())
+
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
@@ -193,16 +172,6 @@ type memoryAllocator struct {
 	base int64
 	end  int64
 	dbID int64
-}
-
-// Base implements autoid.Allocator Base interface.
-func (alloc *memoryAllocator) Base() int64 {
-	return alloc.base
-}
-
-// End implements autoid.Allocator End interface.
-func (alloc *memoryAllocator) End() int64 {
-	return alloc.end
 }
 
 // NextGlobalAutoID implements autoid.Allocator NextGlobalAutoID interface.

@@ -17,11 +17,14 @@ import (
 	"fmt"
 
 	"github.com/juju/errors"
-	"github.com/pingcap/tidb/types"
+	"github.com/pingcap/tidb/util/types"
 )
 
-// EncodeDecimal encodes a decimal into a byte slice which can be sorted lexicographically later.
-func EncodeDecimal(b []byte, dec *types.MyDecimal, precision, frac int) []byte {
+// EncodeDecimal encodes a decimal d into a byte slice which can be sorted lexicographically later.
+func EncodeDecimal(b []byte, d types.Datum) []byte {
+	dec := d.GetMysqlDecimal()
+	precision := d.Length()
+	frac := d.Frac()
 	if precision == 0 {
 		precision, frac = dec.PrecisionAndFrac()
 	}
@@ -35,9 +38,10 @@ func EncodeDecimal(b []byte, dec *types.MyDecimal, precision, frac int) []byte {
 }
 
 // DecodeDecimal decodes bytes to decimal.
-func DecodeDecimal(b []byte) ([]byte, *types.MyDecimal, error) {
+func DecodeDecimal(b []byte) ([]byte, types.Datum, error) {
+	var d types.Datum
 	if len(b) < 3 {
-		return b, nil, errors.New("insufficient bytes to decode value")
+		return b, d, errors.New("insufficient bytes to decode value")
 	}
 	precision := int(b[0])
 	frac := int(b[1])
@@ -46,7 +50,10 @@ func DecodeDecimal(b []byte) ([]byte, *types.MyDecimal, error) {
 	binSize, err := dec.FromBin(b, precision, frac)
 	b = b[binSize:]
 	if err != nil {
-		return b, nil, errors.Trace(err)
+		return b, d, errors.Trace(err)
 	}
-	return b, dec, nil
+	d.SetLength(precision)
+	d.SetFrac(frac)
+	d.SetMysqlDecimal(dec)
+	return b, d, nil
 }

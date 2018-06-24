@@ -27,7 +27,6 @@ import (
 	"github.com/pingcap/tidb/terror"
 )
 
-// memDBBuffer implements the MemBuffer interface.
 type memDbBuffer struct {
 	db              *memdb.DB
 	entrySizeLimit  int
@@ -41,9 +40,9 @@ type memDbIter struct {
 }
 
 // NewMemDbBuffer creates a new memDbBuffer.
-func NewMemDbBuffer(cap int) MemBuffer {
+func NewMemDbBuffer() MemBuffer {
 	return &memDbBuffer{
-		db:              memdb.New(comparer.DefaultComparer, cap),
+		db:              memdb.New(comparer.DefaultComparer, 4*1024),
 		entrySizeLimit:  TxnEntrySizeLimit,
 		bufferLenLimit:  atomic.LoadUint64(&TxnEntryCountLimit),
 		bufferSizeLimit: TxnTotalSizeLimit,
@@ -63,10 +62,6 @@ func (m *memDbBuffer) Seek(k Key) (Iterator, error) {
 		return nil, errors.Trace(err)
 	}
 	return i, nil
-}
-
-func (m *memDbBuffer) SetCap(cap int) {
-
 }
 
 func (m *memDbBuffer) SeekReverse(k Key) (Iterator, error) {
@@ -124,11 +119,6 @@ func (m *memDbBuffer) Len() int {
 	return m.db.Len()
 }
 
-// Reset cleanup the MemBuffer.
-func (m *memDbBuffer) Reset() {
-	m.db.Reset()
-}
-
 // Next implements the Iterator Next.
 func (i *memDbIter) Next() error {
 	if i.reverse {
@@ -157,25 +147,4 @@ func (i *memDbIter) Value() []byte {
 // Close Implements the Iterator Close.
 func (i *memDbIter) Close() {
 	i.iter.Release()
-}
-
-// WalkMemBuffer iterates all buffered kv pairs in memBuf
-func WalkMemBuffer(memBuf MemBuffer, f func(k Key, v []byte) error) error {
-	iter, err := memBuf.Seek(nil)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	defer iter.Close()
-	for iter.Valid() {
-		if err = f(iter.Key(), iter.Value()); err != nil {
-			return errors.Trace(err)
-		}
-		err = iter.Next()
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-
-	return nil
 }

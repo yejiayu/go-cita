@@ -72,7 +72,7 @@ const (
 	ErrNonUniq                                                      = 1052
 	ErrServerShutdown                                               = 1053
 	ErrBadField                                                     = 1054
-	ErrFieldNotInGroupBy                                            = 1055
+	ErrWrongFieldWithGroup                                          = 1055
 	ErrWrongGroupField                                              = 1056
 	ErrWrongSumSelect                                               = 1057
 	ErrWrongValueCount                                              = 1058
@@ -193,7 +193,7 @@ const (
 	ErrRequiresPrimaryKey                                           = 1173
 	ErrNoRaidCompiled                                               = 1174
 	ErrUpdateWithoutKeyInSafeMode                                   = 1175
-	ErrKeyDoesNotExist                                              = 1176
+	ErrKeyDoesNotExits                                              = 1176
 	ErrCheckNoSuchTable                                             = 1177
 	ErrCheckNotImplemented                                          = 1178
 	ErrCantDoThisDuringAnTransaction                                = 1179
@@ -891,17 +891,12 @@ const (
 	ErrInvalidJSONData                                              = 3146
 	ErrJSONUsedAsKey                                                = 3152
 
-	// TiDB self-defined errors.
-	ErrMemExceedThreshold = 8001
-	ErrForUpdateCantRetry = 8002
-
 	// TiKV/PD errors.
 	ErrPDServerTimeout    = 9001
 	ErrTiKVServerTimeout  = 9002
 	ErrTiKVServerBusy     = 9003
 	ErrResolveLockTimeout = 9004
-	ErrRegionUnavailable  = 9005
-	ErrGCTooEarly         = 9006
+	ErrRegionUnavaiable   = 9005
 
 	ErrTxnTooLarge = 9500
 )
