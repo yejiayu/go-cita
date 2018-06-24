@@ -62,3 +62,11 @@ message Miscellaneous {
 
 message MiscellaneousReq {
 }
+
+message SendTransactionReply{
+  bytes txHash = 1;
+}
+
+service Auth {
+  rpc SendTransaction (UnverifiedTransaction) returns (SendTransactionReply) {}
+}

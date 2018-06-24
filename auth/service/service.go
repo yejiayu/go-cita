@@ -77,6 +77,10 @@ func (s *service) init() error {
 		return err
 	}
 
+	if h == nil {
+		return nil
+	}
+
 	var step uint64
 	for step < 100 || (h.Height-step) > 0 {
 		height := h.Height - step
@@ -109,6 +113,7 @@ func (s *service) Untx(untx *types.UnverifiedTransaction) (common.Hash, error) {
 	if pk == nil {
 		pk, err = s.verifyTxSig(txHash.Bytes(), untx.GetSignature(), untx.GetCrypto())
 		if err != nil {
+			glog.Error(err)
 			return common.Hash{}, err
 		}
 
@@ -189,9 +194,9 @@ func (s *service) checkHistoryTxs(hash common.Hash) error {
 
 // TODO: check quota
 func (s *service) checkQuota(quota uint64, address common.Address) error {
-	if quota > s.blockQuotaLimit {
-		return errors.New("quota not enough")
-	}
+	// if quota > s.blockQuotaLimit {
+	// 	return errors.New("quota not enough")
+	// }
 	return nil
 }
 

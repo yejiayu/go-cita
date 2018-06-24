@@ -16,7 +16,6 @@ package kv
 import (
 	"github.com/juju/errors"
 	"github.com/pingcap/tidb/store/tikv/oracle"
-	"golang.org/x/net/context"
 )
 
 // mockTxn is a txn that returns a retryAble error when called Commit.
@@ -25,8 +24,8 @@ type mockTxn struct {
 	valid bool
 }
 
-// Commit always returns a retryable error.
-func (t *mockTxn) Commit(ctx context.Context) error {
+// Always returns a retryable error.
+func (t *mockTxn) Commit() error {
 	return ErrRetryable
 }
 
@@ -95,33 +94,9 @@ func (t *mockTxn) Size() int {
 	return 0
 }
 
-func (t *mockTxn) GetMemBuffer() MemBuffer {
-	return nil
-}
-
 func (t *mockTxn) GetSnapshot() Snapshot {
 	return &mockSnapshot{
-		store: NewMemDbBuffer(DefaultTxnMembufCap),
-	}
-}
-
-func (t *mockTxn) SetCap(cap int) {
-
-}
-
-func (t *mockTxn) Reset() {
-	t.valid = false
-}
-
-func (t *mockTxn) SetVars(vars *Variables) {
-
-}
-
-// NewMockTxn new a mockTxn.
-func NewMockTxn() Transaction {
-	return &mockTxn{
-		opts:  make(map[Option]interface{}),
-		valid: true,
+		store: NewMemDbBuffer(),
 	}
 }
 
@@ -144,7 +119,7 @@ func (s *mockStorage) BeginWithStartTS(startTS uint64) (Transaction, error) {
 
 func (s *mockStorage) GetSnapshot(ver Version) (Snapshot, error) {
 	return &mockSnapshot{
-		store: NewMemDbBuffer(DefaultTxnMembufCap),
+		store: NewMemDbBuffer(),
 	}, nil
 }
 
@@ -190,10 +165,6 @@ type mockSnapshot struct {
 
 func (s *mockSnapshot) Get(k Key) ([]byte, error) {
 	return s.store.Get(k)
-}
-
-func (s *mockSnapshot) SetPriority(priority int) {
-
 }
 
 func (s *mockSnapshot) BatchGet(keys []Key) (map[string][]byte, error) {

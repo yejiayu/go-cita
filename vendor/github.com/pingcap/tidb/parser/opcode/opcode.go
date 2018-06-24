@@ -13,10 +13,7 @@
 
 package opcode
 
-import (
-	"fmt"
-	"io"
-)
+import "fmt"
 
 // Op is opcode type.
 type Op int
@@ -97,42 +94,4 @@ func (o Op) String() string {
 	}
 
 	return str
-}
-
-var opsLiteral = map[Op]string{
-	LogicAnd:   "&&",
-	LogicOr:    "||",
-	LogicXor:   "^",
-	LeftShift:  "<<",
-	RightShift: ">>",
-	GE:         ">=",
-	LE:         "<=",
-	EQ:         "==",
-	NE:         "!=",
-	LT:         "<",
-	GT:         ">",
-	Plus:       "+",
-	Minus:      "-",
-	And:        "&",
-	Or:         "|",
-	Mod:        "%",
-	Xor:        "^",
-	Div:        "/",
-	Mul:        "*",
-	Not:        "!",
-	BitNeg:     "~",
-	IntDiv:     "//",
-	NullEQ:     "<=>",
-	In:         "IN",
-	Like:       "LIKE",
-	Case:       "CASE",
-	Regexp:     "REGEXP",
-	IsNull:     "IS NULL",
-	IsTruth:    "IS TRUE",
-	IsFalsity:  "IS FALSE",
-}
-
-// Format the ExprNode into a Writer.
-func (o Op) Format(w io.Writer) {
-	fmt.Fprintf(w, opsLiteral[o])
 }

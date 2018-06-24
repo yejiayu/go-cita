@@ -14,22 +14,16 @@
 package pd
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"io/ioutil"
-	"net/url"
+	"context"
 	"strings"
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errors"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/kvproto/pkg/pdpb"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // Client is a PD (Placement Driver) client.
@@ -98,19 +92,10 @@ type client struct {
 	wg     sync.WaitGroup
 	ctx    context.Context
 	cancel context.CancelFunc
-
-	security SecurityOption
-}
-
-// SecurityOption records options about tls
-type SecurityOption struct {
-	CAPath   string
-	CertPath string
-	KeyPath  string
 }
 
 // NewClient creates a PD client.
-func NewClient(pdAddrs []string, security SecurityOption) (Client, error) {
+func NewClient(pdAddrs []string) (Client, error) {
 	log.Infof("[pd] create pd client with endpoints %v", pdAddrs)
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &client{
@@ -120,7 +105,6 @@ func NewClient(pdAddrs []string, security SecurityOption) (Client, error) {
 		checkLeaderCh: make(chan struct{}, 1),
 		ctx:           ctx,
 		cancel:        cancel,
-		security:      security,
 	}
 	c.connMu.clientConns = make(map[string]*grpc.ClientConn)
 
@@ -228,46 +212,11 @@ func (c *client) getOrCreateGRPCConn(addr string) (*grpc.ClientConn, error) {
 		return conn, nil
 	}
 
-	opt := grpc.WithInsecure()
-	if len(c.security.CAPath) != 0 {
-
-		certificates := []tls.Certificate{}
-		if len(c.security.CertPath) != 0 && len(c.security.KeyPath) != 0 {
-			// Load the client certificates from disk
-			certificate, err := tls.LoadX509KeyPair(c.security.CertPath, c.security.KeyPath)
-			if err != nil {
-				return nil, errors.Errorf("could not load client key pair: %s", err)
-			}
-			certificates = append(certificates, certificate)
-		}
-
-		// Create a certificate pool from the certificate authority
-		certPool := x509.NewCertPool()
-		ca, err := ioutil.ReadFile(c.security.CAPath)
-		if err != nil {
-			return nil, errors.Errorf("could not read ca certificate: %s", err)
-		}
-
-		// Append the certificates from the CA
-		if !certPool.AppendCertsFromPEM(ca) {
-			return nil, errors.New("failed to append ca certs")
-		}
-
-		creds := credentials.NewTLS(&tls.Config{
-			Certificates: certificates,
-			RootCAs:      certPool,
-		})
-
-		opt = grpc.WithTransportCredentials(creds)
-	}
-	u, err := url.Parse(addr)
+	cc, err := grpc.Dial(strings.TrimPrefix(addr, "http://"), grpc.WithInsecure()) // TODO: Support HTTPS.
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	cc, err := grpc.Dial(u.Host, opt)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 	if old, ok := c.connMu.clientConns[addr]; ok {
@@ -335,7 +284,6 @@ func (c *client) tsLoop() {
 	defer loopCancel()
 
 	var requests []*tsoRequest
-	var opts []opentracing.StartSpanOption
 	var stream pdpb.PD_TsoClient
 	var cancel context.CancelFunc
 
@@ -378,8 +326,7 @@ func (c *client) tsLoop() {
 			case <-loopCtx.Done():
 				return
 			}
-			opts = extractSpanReference(requests, opts[:0])
-			err = c.processTSORequests(stream, requests, opts)
+			err = c.processTSORequests(stream, requests)
 			close(done)
 			requests = requests[:0]
 		case <-loopCtx.Done():
@@ -396,27 +343,12 @@ func (c *client) tsLoop() {
 	}
 }
 
-func extractSpanReference(requests []*tsoRequest, opts []opentracing.StartSpanOption) []opentracing.StartSpanOption {
-	for _, req := range requests {
-		if span := opentracing.SpanFromContext(req.ctx); span != nil {
-			opts = append(opts, opentracing.ChildOf(span.Context()))
-		}
-	}
-	return opts
-}
-
-func (c *client) processTSORequests(stream pdpb.PD_TsoClient, requests []*tsoRequest, opts []opentracing.StartSpanOption) error {
-	if len(opts) > 0 {
-		span := opentracing.StartSpan("pdclient.processTSORequests", opts...)
-		defer span.Finish()
-	}
-
+func (c *client) processTSORequests(stream pdpb.PD_TsoClient, requests []*tsoRequest) error {
 	start := time.Now()
 	req := &pdpb.TsoRequest{
 		Header: c.requestHeader(),
 		Count:  uint32(len(requests)),
 	}
-
 	if err := stream.Send(req); err != nil {
 		c.finishTSORequest(requests, 0, 0, err)
 		return errors.Trace(err)
@@ -444,9 +376,6 @@ func (c *client) processTSORequests(stream pdpb.PD_TsoClient, requests []*tsoReq
 
 func (c *client) finishTSORequest(requests []*tsoRequest, physical, firstLogical int64, err error) {
 	for i := 0; i < len(requests); i++ {
-		if span := opentracing.SpanFromContext(requests[i].ctx); span != nil {
-			span.Finish()
-		}
 		requests[i].physical, requests[i].logical = physical, firstLogical+int64(i)
 		requests[i].done <- err
 	}
@@ -502,10 +431,6 @@ var tsoReqPool = sync.Pool{
 }
 
 func (c *client) GetTSAsync(ctx context.Context) TSFuture {
-	if span := opentracing.SpanFromContext(ctx); span != nil {
-		span = opentracing.StartSpan("GetTSAsync", opentracing.ChildOf(span.Context()))
-		ctx = opentracing.ContextWithSpan(ctx, span)
-	}
 	req := tsoReqPool.Get().(*tsoRequest)
 	req.start = time.Now()
 	req.ctx = ctx
@@ -544,13 +469,8 @@ func (c *client) GetTS(ctx context.Context) (int64, int64, error) {
 }
 
 func (c *client) GetRegion(ctx context.Context, key []byte) (*metapb.Region, *metapb.Peer, error) {
-	if span := opentracing.SpanFromContext(ctx); span != nil {
-		span = opentracing.StartSpan("pdclient.GetRegion", opentracing.ChildOf(span.Context()))
-		defer span.Finish()
-	}
 	start := time.Now()
 	defer func() { cmdDuration.WithLabelValues("get_region").Observe(time.Since(start).Seconds()) }()
-
 	ctx, cancel := context.WithTimeout(ctx, pdTimeout)
 	resp, err := c.leaderClient().GetRegion(ctx, &pdpb.GetRegionRequest{
 		Header:    c.requestHeader(),
@@ -568,13 +488,8 @@ func (c *client) GetRegion(ctx context.Context, key []byte) (*metapb.Region, *me
 }
 
 func (c *client) GetRegionByID(ctx context.Context, regionID uint64) (*metapb.Region, *metapb.Peer, error) {
-	if span := opentracing.SpanFromContext(ctx); span != nil {
-		span = opentracing.StartSpan("pdclient.GetRegionByID", opentracing.ChildOf(span.Context()))
-		defer span.Finish()
-	}
 	start := time.Now()
 	defer func() { cmdDuration.WithLabelValues("get_region_byid").Observe(time.Since(start).Seconds()) }()
-
 	ctx, cancel := context.WithTimeout(ctx, pdTimeout)
 	resp, err := c.leaderClient().GetRegionByID(ctx, &pdpb.GetRegionByIDRequest{
 		Header:   c.requestHeader(),
@@ -592,13 +507,8 @@ func (c *client) GetRegionByID(ctx context.Context, regionID uint64) (*metapb.Re
 }
 
 func (c *client) GetStore(ctx context.Context, storeID uint64) (*metapb.Store, error) {
-	if span := opentracing.SpanFromContext(ctx); span != nil {
-		span = opentracing.StartSpan("pdclient.GetStore", opentracing.ChildOf(span.Context()))
-		defer span.Finish()
-	}
 	start := time.Now()
 	defer func() { cmdDuration.WithLabelValues("get_store").Observe(time.Since(start).Seconds()) }()
-
 	ctx, cancel := context.WithTimeout(ctx, pdTimeout)
 	resp, err := c.leaderClient().GetStore(ctx, &pdpb.GetStoreRequest{
 		Header:  c.requestHeader(),

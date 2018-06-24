@@ -42,11 +42,11 @@ type cache struct {
 func (c *cache) getPublicKey(hash common.Hash) (*ecdsa.PublicKey, error) {
 	reply, err := c.client.Do("HGET", "tx.pk", hash.String())
 	if err != nil {
-		if err == redis.ErrNil {
-			return nil, nil
-		}
-
 		return nil, err
+	}
+
+	if reply == nil {
+		return nil, nil
 	}
 
 	data := reply.([]byte)
@@ -69,24 +69,16 @@ func (c *cache) setHistoryTx(height uint64, txHashes []common.Hash) error {
 }
 
 func (c *cache) historyTxExists(height uint64, txHash common.Hash) (bool, error) {
-	_, err := c.client.Do("SMEMBERS", fmt.Sprintf("history.txs.%d", height), txHash.Hex())
+	reply, err := c.client.Do("SISMEMBER", fmt.Sprintf("history.txs.%d", height), txHash.Hex())
 	if err != nil {
-		if err == redis.ErrNil {
-			return false, nil
-		}
-
 		return false, err
 	}
-	return true, nil
+	return reply == nil, nil
 }
 
 func (c *cache) deleteHistoryTx(height uint64) error {
 	_, err := c.client.Do("DEL", fmt.Sprintf("history.txs.%d", height))
 	if err != nil {
-		if err == redis.ErrNil {
-			return nil
-		}
-
 		return err
 	}
 

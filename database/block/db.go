@@ -50,6 +50,10 @@ func (db *blockDB) GetHeaderByHeight(height uint64) (*types.BlockHeader, error) 
 		return nil, err
 	}
 
+	if data == nil {
+		return nil, nil
+	}
+
 	var h types.BlockHeader
 	if err := proto.Unmarshal(data, &h); err != nil {
 		return nil, err
@@ -61,6 +65,10 @@ func (db *blockDB) GetBodyByHeight(height uint64) (*types.BlockBody, error) {
 	data, err := db.rawDB.Get(bodyKey(height))
 	if err != nil {
 		return nil, err
+	}
+
+	if data == nil {
+		return nil, nil
 	}
 
 	var body types.BlockBody
@@ -75,6 +83,10 @@ func (db *blockDB) GetHeaderByLatest() (*types.BlockHeader, error) {
 	data, err := db.rawDB.Get(latestHeader)
 	if err != nil {
 		return nil, err
+	}
+
+	if data == nil {
+		return nil, nil
 	}
 
 	var header types.BlockHeader

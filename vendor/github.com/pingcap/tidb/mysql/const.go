@@ -28,7 +28,7 @@ var (
 	TiDBReleaseVersion = "None"
 
 	// ServerVersion is the version information of this tidb-server in MySQL's format.
-	ServerVersion = fmt.Sprintf("5.7.10-TiDB-%s", TiDBReleaseVersion)
+	ServerVersion = fmt.Sprintf("5.7.1-TiDB-%s", TiDBReleaseVersion)
 )
 
 // Header information.
@@ -59,25 +59,25 @@ const (
 // See https://dev.mysql.com/doc/refman/5.7/en/identifiers.html
 const (
 	// MaxPayloadLen is the max packet payload length.
-	MaxPayloadLen = 1<<24 - 1
+	MaxPayloadLen int = 1<<24 - 1
 	// MaxTableNameLength is max length of table name identifier.
-	MaxTableNameLength = 64
+	MaxTableNameLength int = 64
 	// MaxDatabaseNameLength is max length of database name identifier.
-	MaxDatabaseNameLength = 64
+	MaxDatabaseNameLength int = 64
 	// MaxColumnNameLength is max length of column name identifier.
-	MaxColumnNameLength = 64
+	MaxColumnNameLength int = 64
 	// MaxKeyParts is max length of key parts.
-	MaxKeyParts = 16
+	MaxKeyParts int = 16
 	// MaxIndexIdentifierLen is max length of index identifier.
-	MaxIndexIdentifierLen = 64
+	MaxIndexIdentifierLen int = 64
 	// MaxConstraintIdentifierLen is max length of constrain identifier.
-	MaxConstraintIdentifierLen = 64
+	MaxConstraintIdentifierLen int = 64
 	// MaxViewIdentifierLen is max length of view identifier.
-	MaxViewIdentifierLen = 64
+	MaxViewIdentifierLen int = 64
 	// MaxAliasIdentifierLen is max length of alias identifier.
-	MaxAliasIdentifierLen = 256
+	MaxAliasIdentifierLen int = 256
 	// MaxUserDefinedVariableLen is max length of user-defined variable.
-	MaxUserDefinedVariableLen = 64
+	MaxUserDefinedVariableLen int = 64
 )
 
 // ErrTextLength error text length limit.
@@ -217,7 +217,6 @@ const (
 )
 
 // AllPrivMask is the mask for PrivilegeType with all bits set to 1.
-// If it's passed to RequestVerification, it means any privilege would be OK.
 const AllPrivMask = AllPriv - 1
 
 // MySQL type maximum length.
@@ -228,8 +227,6 @@ const (
 
 	MaxIntWidth             = 20
 	MaxRealWidth            = 23
-	MaxFloatingTypeScale    = 30
-	MaxFloatingTypeWidth    = 255
 	MaxDecimalScale         = 30
 	MaxDecimalWidth         = 65
 	MaxDateWidth            = 10 // YYYY-MM-DD.
@@ -245,6 +242,12 @@ const (
 const (
 	MaxFieldCharLength    = 255
 	MaxFieldVarCharLength = 65535
+)
+
+// MySQL precision.
+const (
+	PrecisionForDouble = 53
+	PrecisionForFloat  = 24
 )
 
 // MaxTypeSetMembers is the number of set members.
@@ -356,9 +359,6 @@ var AllColumnPrivs = []PrivilegeType{SelectPriv, InsertPriv, UpdatePriv}
 // AllPrivilegeLiteral is the string literal for All Privilege.
 const AllPrivilegeLiteral = "ALL PRIVILEGES"
 
-// DefaultSQLMode for GLOBAL_VARIABLES
-const DefaultSQLMode = "STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
-
 // DefaultLengthOfMysqlTypes is the map for default physical length of MySQL data types.
 // See http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html
 var DefaultLengthOfMysqlTypes = map[byte]int{
@@ -414,54 +414,9 @@ func (m SQLMode) HasErrorForDivisionByZeroMode() bool {
 	return m&ModeErrorForDivisionByZero == ModeErrorForDivisionByZero
 }
 
-// HasOnlyFullGroupBy detects if 'ONLY_FULL_GROUP_BY' mode is set in SQLMode
-func (m SQLMode) HasOnlyFullGroupBy() bool {
-	return m&ModeOnlyFullGroupBy == ModeOnlyFullGroupBy
-}
-
 // HasStrictMode detects if 'STRICT_TRANS_TABLES' or 'STRICT_ALL_TABLES' mode is set in SQLMode
 func (m SQLMode) HasStrictMode() bool {
 	return m&ModeStrictTransTables == ModeStrictTransTables || m&ModeStrictAllTables == ModeStrictAllTables
-}
-
-// HasPipesAsConcatMode detects if 'PIPES_AS_CONCAT' mode is set in SQLMode
-func (m SQLMode) HasPipesAsConcatMode() bool {
-	return m&ModePipesAsConcat == ModePipesAsConcat
-}
-
-// HasNoUnsignedSubtractionMode detects if 'NO_UNSIGNED_SUBTRACTION' mode is set in SQLMode
-func (m SQLMode) HasNoUnsignedSubtractionMode() bool {
-	return m&ModeNoUnsignedSubtraction == ModeNoUnsignedSubtraction
-}
-
-// HasHighNotPrecedenceMode detects if 'HIGH_NOT_PRECEDENCE' mode is set in SQLMode
-func (m SQLMode) HasHighNotPrecedenceMode() bool {
-	return m&ModeHighNotPrecedence == ModeHighNotPrecedence
-}
-
-// HasANSIQuotesMode detects if 'ANSI_QUOTES' mode is set in SQLMode
-func (m SQLMode) HasANSIQuotesMode() bool {
-	return m&ModeANSIQuotes == ModeANSIQuotes
-}
-
-// HasRealAsFloatMode detects if 'REAL_AS_FLOAT' mode is set in SQLMode
-func (m SQLMode) HasRealAsFloatMode() bool {
-	return m&ModeRealAsFloat == ModeRealAsFloat
-}
-
-// HasPadCharToFullLengthMode detects if 'PAD_CHAR_TO_FULL_LENGTH' mode is set in SQLMode
-func (m SQLMode) HasPadCharToFullLengthMode() bool {
-	return m&ModePadCharToFullLength == ModePadCharToFullLength
-}
-
-// HasNoBackslashEscapesMode detects if 'NO_BACKSLASH_ESCAPES' mode is set in SQLMode
-func (m SQLMode) HasNoBackslashEscapesMode() bool {
-	return m&ModeNoBackslashEscapes == ModeNoBackslashEscapes
-}
-
-// HasIgnoreSpaceMode detects if 'IGNORE_SPACE' mode is set in SQLMode
-func (m SQLMode) HasIgnoreSpaceMode() bool {
-	return m&ModeIgnoreSpace == ModeIgnoreSpace
 }
 
 // consts for sql modes.

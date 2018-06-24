@@ -22,13 +22,11 @@ import (
 
 const signMask uint64 = 0x8000000000000000
 
-// EncodeIntToCmpUint make int v to comparable uint type
-func EncodeIntToCmpUint(v int64) uint64 {
+func encodeIntToCmpUint(v int64) uint64 {
 	return uint64(v) ^ signMask
 }
 
-// DecodeCmpUintToInt decodes the u that encoded by EncodeIntToCmpUint
-func DecodeCmpUintToInt(u uint64) int64 {
+func decodeCmpUintToInt(u uint64) int64 {
 	return int64(u ^ signMask)
 }
 
@@ -36,7 +34,7 @@ func DecodeCmpUintToInt(u uint64) int64 {
 // EncodeInt guarantees that the encoded value is in ascending order for comparison.
 func EncodeInt(b []byte, v int64) []byte {
 	var data [8]byte
-	u := EncodeIntToCmpUint(v)
+	u := encodeIntToCmpUint(v)
 	binary.BigEndian.PutUint64(data[:], u)
 	return append(b, data[:]...)
 }
@@ -45,7 +43,7 @@ func EncodeInt(b []byte, v int64) []byte {
 // EncodeIntDesc guarantees that the encoded value is in descending order for comparison.
 func EncodeIntDesc(b []byte, v int64) []byte {
 	var data [8]byte
-	u := EncodeIntToCmpUint(v)
+	u := encodeIntToCmpUint(v)
 	binary.BigEndian.PutUint64(data[:], ^u)
 	return append(b, data[:]...)
 }
@@ -58,7 +56,7 @@ func DecodeInt(b []byte) ([]byte, int64, error) {
 	}
 
 	u := binary.BigEndian.Uint64(b[:8])
-	v := DecodeCmpUintToInt(u)
+	v := decodeCmpUintToInt(u)
 	b = b[8:]
 	return b, v, nil
 }
@@ -71,7 +69,7 @@ func DecodeIntDesc(b []byte) ([]byte, int64, error) {
 	}
 
 	u := binary.BigEndian.Uint64(b[:8])
-	v := DecodeCmpUintToInt(^u)
+	v := decodeCmpUintToInt(^u)
 	b = b[8:]
 	return b, v, nil
 }
@@ -160,7 +158,7 @@ func DecodeUvarint(b []byte) ([]byte, uint64, error) {
 }
 
 const (
-	negativeTagEnd   = 8        // negative tag is (negativeTagEnd - length).
+	negativeTagEnd   = 8        // Negative tag is (negativeTagEnd - length).
 	positiveTagStart = 0xff - 8 // Positive tag is (positiveTagStart + length).
 )
 
@@ -265,7 +263,7 @@ func DecodeComparableVarint(b []byte) ([]byte, int64, error) {
 	var v uint64
 	if first < negativeTagEnd {
 		length = negativeTagEnd - int(first)
-		v = math.MaxUint64 // negative value has all bits on by default.
+		v = math.MaxUint64 // Negative value has all bits on by default.
 	} else {
 		length = int(first) - positiveTagStart
 	}

@@ -16,8 +16,11 @@
 package auth
 
 import (
+	"net"
+
 	"github.com/golang/glog"
 	"github.com/streadway/amqp"
+	"google.golang.org/grpc"
 
 	"github.com/yejiayu/go-cita/auth/service"
 	"github.com/yejiayu/go-cita/database"
@@ -25,7 +28,7 @@ import (
 )
 
 type Interface interface {
-	Run(quit chan<- error)
+	Run(port string, quit chan<- error)
 }
 
 func New(queue mq.Queue, dbFactory database.Factory) (Interface, error) {
@@ -35,21 +38,36 @@ func New(queue mq.Queue, dbFactory database.Factory) (Interface, error) {
 	}
 
 	return &auth{
-		queue:      queue,
-		mqHandler:  newMQ(queue, srv),
-		rpcHandler: newRPC(queue, srv),
+		queue:     queue,
+		mqHandler: newMQ(queue, srv),
+
+		server: newServer(srv),
 	}, nil
 }
 
 type auth struct {
 	queue mq.Queue
 
-	mqHandler  *mqHandler
-	rpcHandler *rpcHandler
+	mqHandler *mqHandler
+
+	server *grpc.Server
 }
 
-func (a *auth) Run(quit chan<- error) {
+func (a *auth) Run(port string, quit chan<- error) {
 	go a.loopMQ(quit)
+
+	go func() {
+		lis, err := net.Listen("tcp", "0.0.0.0:"+port)
+		if err != nil {
+			quit <- err
+			return
+		}
+
+		glog.Infof("The auth server listens on port %s", port)
+		if err := a.server.Serve(lis); err != nil {
+			quit <- err
+		}
+	}()
 }
 
 func (a *auth) loopMQ(quit chan<- error) {

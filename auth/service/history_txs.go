@@ -62,8 +62,9 @@ func (ht *historyTx) AddTxs(height uint64, txs []*types.SignedTransaction) error
 func (ht *historyTx) Contains(txHash common.Hash) (bool, error) {
 	var count uint64
 	for count < 100 {
+
 		height := ht.maxHeight - count
-		if height < 0 {
+		if height < 1 {
 			return false, nil
 		}
 

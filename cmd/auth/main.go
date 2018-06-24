@@ -27,6 +27,7 @@ import (
 var (
 	dbURLs = kingpin.Flag("db-url", "url of tikv").Required().Strings()
 	mqURL  = kingpin.Flag("mq-url", "url of rabbitmq").Default("amqp://guest:guest@localhost:5672").String()
+	port   = kingpin.Flag("port", "auth server port").Default("9001").String()
 )
 
 func main() {
@@ -53,7 +54,7 @@ func main() {
 		glog.Fatal(err)
 	}
 
-	a.Run(quit)
+	a.Run(*port, quit)
 	glog.Info("auth start")
 	if err := <-quit; err != nil {
 		glog.Fatal(err)

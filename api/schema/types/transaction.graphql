@@ -1,0 +1,21 @@
+enum Crypto {
+  SECP
+  SM2
+}
+
+type Transaction {
+  to: Hex
+  nonce: String!
+  quota: Uint64!
+  valid_until_block: Uint64!
+  data: Hex!
+  value: Uint64
+  chain_id: Uint32!
+  version: Uint32!
+}
+
+input SendTransactionInput {
+  transaction: Transaction!
+  signature: Hex!
+  crypto: Crypto!
+}
