@@ -15,12 +15,18 @@ package variable
 
 import (
 	"crypto/tls"
-	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/juju/errors"
+	"github.com/pingcap/tidb/config"
+	"github.com/pingcap/tidb/kv"
+	"github.com/pingcap/tidb/meta/autoid"
 	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/sessionctx/stmtctx"
 	"github.com/pingcap/tidb/terror"
+	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tidb/util/auth"
 )
 
@@ -88,16 +94,26 @@ type TransactionContext struct {
 	StartTS       uint64
 	Shard         *int64
 	TableDeltaMap map[int64]TableDelta
+
+	// For metrics.
+	CreateTime     time.Time
+	StatementCount int
 }
 
 // UpdateDeltaForTable updates the delta info for some table.
-func (tc *TransactionContext) UpdateDeltaForTable(tableID int64, delta int64, count int64) {
+func (tc *TransactionContext) UpdateDeltaForTable(tableID int64, delta int64, count int64, colSize map[int64]int64) {
 	if tc.TableDeltaMap == nil {
 		tc.TableDeltaMap = make(map[int64]TableDelta)
 	}
 	item := tc.TableDeltaMap[tableID]
+	if item.ColSize == nil && colSize != nil {
+		item.ColSize = make(map[int64]int64)
+	}
 	item.Delta += delta
 	item.Count += count
+	for key, val := range colSize {
+		item.ColSize[key] += val
+	}
 	tc.TableDeltaMap[tableID] = item
 }
 
@@ -106,24 +122,68 @@ func (tc *TransactionContext) ClearDelta() {
 	tc.TableDeltaMap = nil
 }
 
+// WriteStmtBufs can be used by insert/replace/delete/update statement.
+// TODO: use a common memory pool to replace this.
+type WriteStmtBufs struct {
+	// RowValBuf is used by tablecodec.EncodeRow, to reduce runtime.growslice.
+	RowValBuf []byte
+	// BufStore stores temp KVs for a row when executing insert statement.
+	// We could reuse a BufStore for multiple rows of a session to reduce memory allocations.
+	BufStore *kv.BufferStore
+	// AddRowValues use to store temp insert rows value, to reduce memory allocations when importing data.
+	AddRowValues []types.Datum
+
+	// IndexValsBuf is used by index.FetchValues
+	IndexValsBuf []types.Datum
+	// IndexKeyBuf is used by index.GenIndexKey
+	IndexKeyBuf []byte
+}
+
+func (ib *WriteStmtBufs) clean() {
+	ib.BufStore = nil
+	ib.RowValBuf = nil
+	ib.AddRowValues = nil
+	ib.IndexValsBuf = nil
+	ib.IndexKeyBuf = nil
+}
+
 // SessionVars is to handle user-defined or global variables in the current session.
 type SessionVars struct {
+	Concurrency
+	MemQuota
+	BatchSize
+	RetryLimit          int64
+	DisableTxnAutoRetry bool
 	// UsersLock is a lock for user defined variables.
 	UsersLock sync.RWMutex
 	// Users are user defined variables.
 	Users map[string]string
-	// Systems are system variables.
-	Systems map[string]string
+	// systems variables, don't modify it directly, use GetSystemVar/SetSystemVar method.
+	systems map[string]string
 	// PreparedStmts stores prepared statement.
 	PreparedStmts        map[uint32]interface{}
 	PreparedStmtNameToID map[string]uint32
 	// preparedStmtID is id of prepared statement.
 	preparedStmtID uint32
+	// params for prepared statements
+	PreparedParams []interface{}
 
 	// retry information
 	RetryInfo *RetryInfo
 	// Should be reset on transaction finished.
 	TxnCtx *TransactionContext
+
+	// KVVars is the variables for KV storage.
+	KVVars *kv.Variables
+
+	// TxnIsolationLevelOneShot is used to implements "set transaction isolation level ..."
+	TxnIsolationLevelOneShot struct {
+		// state 0 means default
+		// state 1 means it's set in current transaction.
+		// state 2 means it should be used in current transaction.
+		State int
+		Value string
+	}
 
 	// Following variables are special for current session.
 
@@ -131,6 +191,8 @@ type SessionVars struct {
 	PrevLastInsertID uint64 // PrevLastInsertID is the last insert ID of previous statement.
 	LastInsertID     uint64 // LastInsertID is the auto-generated ID in the current statement.
 	InsertID         uint64 // InsertID is the given insert ID of an auto_increment column.
+	// PrevAffectedRows is the affected-rows value(DDL is 0, DML is the number of affected rows).
+	PrevAffectedRows int64
 
 	// ClientCapability is client's capability.
 	ClientCapability uint32
@@ -140,6 +202,12 @@ type SessionVars struct {
 
 	// ConnectionID is the connection id of the current session.
 	ConnectionID uint64
+
+	// PlanID is the unique id of logical and physical plan.
+	PlanID int
+
+	// PlanCacheEnabled stores the global config "plan-cache-enabled", and it will be only updated in tests.
+	PlanCacheEnabled bool
 
 	// User is the user identity with which the session login.
 	User *auth.UserIdentity
@@ -173,7 +241,7 @@ type SessionVars struct {
 	LastFoundRows uint64
 
 	// StmtCtx holds variables for current executing statement.
-	StmtCtx *StatementContext
+	StmtCtx *stmtctx.StatementContext
 
 	// AllowAggPushDown can be set to false to forbid aggregation push down.
 	AllowAggPushDown bool
@@ -193,29 +261,11 @@ type SessionVars struct {
 
 	/* TiDB system variables */
 
-	// SkipConstraintCheck is true when importing data.
-	SkipConstraintCheck bool
+	// ImportingData is true when importing data.
+	ImportingData bool
 
 	// SkipUTF8Check check on input value.
 	SkipUTF8Check bool
-
-	// BuildStatsConcurrencyVar is used to control statistics building concurrency.
-	BuildStatsConcurrencyVar int
-
-	// IndexJoinBatchSize is the batch size of a index lookup join.
-	IndexJoinBatchSize int
-
-	// IndexLookupSize is the number of handles for an index lookup task in index double read executor.
-	IndexLookupSize int
-
-	// IndexLookupConcurrency is the number of concurrent index lookup worker.
-	IndexLookupConcurrency int
-
-	// DistSQLScanConcurrency is the number of concurrent dist SQL scan worker.
-	DistSQLScanConcurrency int
-
-	// IndexSerialScanConcurrency is the number of concurrent index serial scan worker.
-	IndexSerialScanConcurrency int
 
 	// BatchInsert indicates if we should split insert data into multiple batches.
 	BatchInsert bool
@@ -223,35 +273,88 @@ type SessionVars struct {
 	// BatchDelete indicates if we should split delete data into multiple batches.
 	BatchDelete bool
 
-	// DMLBatchSize indicates the size of batches for DML.
-	// It will be used when BatchInsert or BatchDelete is on.
-	DMLBatchSize int
+	// IDAllocator is provided by kvEncoder, if it is provided, we will use it to alloc auto id instead of using
+	// Table.alloc.
+	IDAllocator autoid.Allocator
 
-	// MaxRowCountForINLJ defines max row count that the outer table of index nested loop join could be without force hint.
-	MaxRowCountForINLJ int
+	// OptimizerSelectivityLevel defines the level of the selectivity estimation in planner.
+	OptimizerSelectivityLevel int
+
+	// EnableTablePartition enables table partition feature.
+	EnableTablePartition bool
+
+	// EnableStreaming indicates whether the coprocessor request can use streaming API.
+	// TODO: remove this after tidb-server configuration "enable-streaming' removed.
+	EnableStreaming bool
+
+	writeStmtBufs WriteStmtBufs
 }
 
 // NewSessionVars creates a session vars object.
 func NewSessionVars() *SessionVars {
-	return &SessionVars{
-		Users:                      make(map[string]string),
-		Systems:                    make(map[string]string),
-		PreparedStmts:              make(map[uint32]interface{}),
-		PreparedStmtNameToID:       make(map[string]uint32),
-		TxnCtx:                     &TransactionContext{},
-		RetryInfo:                  &RetryInfo{},
-		StrictSQLMode:              true,
-		Status:                     mysql.ServerStatusAutocommit,
-		StmtCtx:                    new(StatementContext),
-		AllowAggPushDown:           false,
-		BuildStatsConcurrencyVar:   DefBuildStatsConcurrency,
-		IndexJoinBatchSize:         DefIndexJoinBatchSize,
-		IndexLookupSize:            DefIndexLookupSize,
+	vars := &SessionVars{
+		Users:                     make(map[string]string),
+		systems:                   make(map[string]string),
+		PreparedStmts:             make(map[uint32]interface{}),
+		PreparedStmtNameToID:      make(map[string]uint32),
+		PreparedParams:            make([]interface{}, 10),
+		TxnCtx:                    &TransactionContext{},
+		KVVars:                    kv.NewVariables(),
+		RetryInfo:                 &RetryInfo{},
+		StrictSQLMode:             true,
+		Status:                    mysql.ServerStatusAutocommit,
+		StmtCtx:                   new(stmtctx.StatementContext),
+		AllowAggPushDown:          false,
+		OptimizerSelectivityLevel: DefTiDBOptimizerSelectivityLevel,
+		RetryLimit:                DefTiDBRetryLimit,
+		DisableTxnAutoRetry:       DefTiDBDisableTxnAutoRetry,
+	}
+	vars.Concurrency = Concurrency{
 		IndexLookupConcurrency:     DefIndexLookupConcurrency,
 		IndexSerialScanConcurrency: DefIndexSerialScanConcurrency,
+		IndexLookupJoinConcurrency: DefIndexLookupJoinConcurrency,
+		HashJoinConcurrency:        DefTiDBHashJoinConcurrency,
+		ProjectionConcurrency:      DefTiDBProjectionConcurrency,
 		DistSQLScanConcurrency:     DefDistSQLScanConcurrency,
-		MaxRowCountForINLJ:         DefMaxRowCountForINLJ,
-		DMLBatchSize:               DefDMLBatchSize,
+		HashAggPartialConcurrency:  DefTiDBHashAggPartialConcurrency,
+		HashAggFinalConcurrency:    DefTiDBHashAggFinalConcurrency,
+	}
+	vars.MemQuota = MemQuota{
+		MemQuotaQuery:             config.GetGlobalConfig().MemQuotaQuery,
+		MemQuotaHashJoin:          DefTiDBMemQuotaHashJoin,
+		MemQuotaMergeJoin:         DefTiDBMemQuotaMergeJoin,
+		MemQuotaSort:              DefTiDBMemQuotaSort,
+		MemQuotaTopn:              DefTiDBMemQuotaTopn,
+		MemQuotaIndexLookupReader: DefTiDBMemQuotaIndexLookupReader,
+		MemQuotaIndexLookupJoin:   DefTiDBMemQuotaIndexLookupJoin,
+		MemQuotaNestedLoopApply:   DefTiDBMemQuotaNestedLoopApply,
+	}
+	vars.BatchSize = BatchSize{
+		IndexJoinBatchSize: DefIndexJoinBatchSize,
+		IndexLookupSize:    DefIndexLookupSize,
+		MaxChunkSize:       DefMaxChunkSize,
+		DMLBatchSize:       DefDMLBatchSize,
+	}
+	var enableStreaming string
+	if config.GetGlobalConfig().EnableStreaming {
+		enableStreaming = "1"
+	} else {
+		enableStreaming = "0"
+	}
+	vars.PlanCacheEnabled = config.GetGlobalConfig().PlanCache.Enabled
+	terror.Log(vars.SetSystemVar(TiDBEnableStreaming, enableStreaming))
+	return vars
+}
+
+// GetWriteStmtBufs get pointer of SessionVars.writeStmtBufs.
+func (s *SessionVars) GetWriteStmtBufs() *WriteStmtBufs {
+	return &s.writeStmtBufs
+}
+
+// CleanBuffers cleans the temporary bufs
+func (s *SessionVars) CleanBuffers() {
+	if !s.ImportingData {
+		s.GetWriteStmtBufs().clean()
 	}
 }
 
@@ -265,8 +368,8 @@ func NewSessionVars() *SessionVars {
 // have their own collation, which has a higher collation precedence.
 // See https://dev.mysql.com/doc/refman/5.7/en/charset-connection.html
 func (s *SessionVars) GetCharsetInfo() (charset, collation string) {
-	charset = s.Systems[CharacterSetConnection]
-	collation = s.Systems[CollationConnection]
+	charset = s.systems[CharacterSetConnection]
+	collation = s.systems[CollationConnection]
 	return
 }
 
@@ -284,7 +387,7 @@ func (s *SessionVars) SetStatusFlag(flag uint16, on bool) {
 		s.Status |= flag
 		return
 	}
-	s.Status &= (^flag)
+	s.Status &= ^flag
 }
 
 // GetStatusFlag gets the session server status variable, returns true if it is on.
@@ -317,6 +420,142 @@ func (s *SessionVars) GetTimeZone() *time.Location {
 	return loc
 }
 
+// ResetPrevAffectedRows reset the prev-affected-rows variable.
+func (s *SessionVars) ResetPrevAffectedRows() {
+	s.PrevAffectedRows = 0
+	if s.StmtCtx != nil {
+		if s.StmtCtx.InUpdateOrDeleteStmt || s.StmtCtx.InInsertStmt {
+			s.PrevAffectedRows = int64(s.StmtCtx.AffectedRows())
+		} else if s.StmtCtx.InSelectStmt {
+			s.PrevAffectedRows = -1
+		}
+	}
+}
+
+// GetSystemVar gets the string value of a system variable.
+func (s *SessionVars) GetSystemVar(name string) (string, bool) {
+	val, ok := s.systems[name]
+	return val, ok
+}
+
+// deleteSystemVar deletes a system variable.
+func (s *SessionVars) deleteSystemVar(name string) error {
+	if name != CharacterSetResults {
+		return ErrCantSetToNull
+	}
+	delete(s.systems, name)
+	return nil
+}
+
+// SetSystemVar sets the value of a system variable.
+func (s *SessionVars) SetSystemVar(name string, val string) error {
+	switch name {
+	case TxnIsolationOneShot:
+		s.TxnIsolationLevelOneShot.State = 1
+		s.TxnIsolationLevelOneShot.Value = val
+	case TimeZone:
+		tz, err := parseTimeZone(val)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		s.TimeZone = tz
+	case SQLModeVar:
+		val = mysql.FormatSQLModeStr(val)
+		// Modes is a list of different modes separated by commas.
+		sqlMode, err2 := mysql.GetSQLMode(val)
+		if err2 != nil {
+			return errors.Trace(err2)
+		}
+		s.StrictSQLMode = sqlMode.HasStrictMode()
+		s.SQLMode = sqlMode
+		s.SetStatusFlag(mysql.ServerStatusNoBackslashEscaped, sqlMode.HasNoBackslashEscapesMode())
+	case TiDBSnapshot:
+		err := setSnapshotTS(s, val)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	case AutocommitVar:
+		isAutocommit := TiDBOptOn(val)
+		s.SetStatusFlag(mysql.ServerStatusAutocommit, isAutocommit)
+		if isAutocommit {
+			s.SetStatusFlag(mysql.ServerStatusInTrans, false)
+		}
+	case TiDBImportingData:
+		s.ImportingData = TiDBOptOn(val)
+	case TiDBSkipUTF8Check:
+		s.SkipUTF8Check = TiDBOptOn(val)
+	case TiDBOptAggPushDown:
+		s.AllowAggPushDown = TiDBOptOn(val)
+	case TiDBOptInSubqUnFolding:
+		s.AllowInSubqueryUnFolding = TiDBOptOn(val)
+	case TiDBIndexLookupConcurrency:
+		s.IndexLookupConcurrency = tidbOptPositiveInt32(val, DefIndexLookupConcurrency)
+	case TiDBIndexLookupJoinConcurrency:
+		s.IndexLookupJoinConcurrency = tidbOptPositiveInt32(val, DefIndexLookupJoinConcurrency)
+	case TiDBIndexJoinBatchSize:
+		s.IndexJoinBatchSize = tidbOptPositiveInt32(val, DefIndexJoinBatchSize)
+	case TiDBIndexLookupSize:
+		s.IndexLookupSize = tidbOptPositiveInt32(val, DefIndexLookupSize)
+	case TiDBHashJoinConcurrency:
+		s.HashJoinConcurrency = tidbOptPositiveInt32(val, DefTiDBHashJoinConcurrency)
+	case TiDBProjectionConcurrency:
+		s.ProjectionConcurrency = tidbOptInt64(val, DefTiDBProjectionConcurrency)
+	case TiDBHashAggPartialConcurrency:
+		s.HashAggPartialConcurrency = tidbOptPositiveInt32(val, DefTiDBHashAggPartialConcurrency)
+	case TiDBHashAggFinalConcurrency:
+		s.HashAggFinalConcurrency = tidbOptPositiveInt32(val, DefTiDBHashAggFinalConcurrency)
+	case TiDBDistSQLScanConcurrency:
+		s.DistSQLScanConcurrency = tidbOptPositiveInt32(val, DefDistSQLScanConcurrency)
+	case TiDBIndexSerialScanConcurrency:
+		s.IndexSerialScanConcurrency = tidbOptPositiveInt32(val, DefIndexSerialScanConcurrency)
+	case TiDBBackoffLockFast:
+		s.KVVars.BackoffLockFast = tidbOptPositiveInt32(val, kv.DefBackoffLockFast)
+	case TiDBBatchInsert:
+		s.BatchInsert = TiDBOptOn(val)
+	case TiDBBatchDelete:
+		s.BatchDelete = TiDBOptOn(val)
+	case TiDBDMLBatchSize:
+		s.DMLBatchSize = tidbOptPositiveInt32(val, DefDMLBatchSize)
+	case TiDBCurrentTS, TiDBConfig:
+		return ErrReadOnly
+	case TiDBMaxChunkSize:
+		s.MaxChunkSize = tidbOptPositiveInt32(val, DefMaxChunkSize)
+	case TIDBMemQuotaQuery:
+		s.MemQuotaQuery = tidbOptInt64(val, config.GetGlobalConfig().MemQuotaQuery)
+	case TIDBMemQuotaHashJoin:
+		s.MemQuotaHashJoin = tidbOptInt64(val, DefTiDBMemQuotaHashJoin)
+	case TIDBMemQuotaMergeJoin:
+		s.MemQuotaMergeJoin = tidbOptInt64(val, DefTiDBMemQuotaMergeJoin)
+	case TIDBMemQuotaSort:
+		s.MemQuotaSort = tidbOptInt64(val, DefTiDBMemQuotaSort)
+	case TIDBMemQuotaTopn:
+		s.MemQuotaTopn = tidbOptInt64(val, DefTiDBMemQuotaTopn)
+	case TIDBMemQuotaIndexLookupReader:
+		s.MemQuotaIndexLookupReader = tidbOptInt64(val, DefTiDBMemQuotaIndexLookupReader)
+	case TIDBMemQuotaIndexLookupJoin:
+		s.MemQuotaIndexLookupJoin = tidbOptInt64(val, DefTiDBMemQuotaIndexLookupJoin)
+	case TIDBMemQuotaNestedLoopApply:
+		s.MemQuotaNestedLoopApply = tidbOptInt64(val, DefTiDBMemQuotaNestedLoopApply)
+	case TiDBGeneralLog:
+		atomic.StoreUint32(&ProcessGeneralLog, uint32(tidbOptPositiveInt32(val, DefTiDBGeneralLog)))
+	case TiDBRetryLimit:
+		s.RetryLimit = tidbOptInt64(val, DefTiDBRetryLimit)
+	case TiDBDisableTxnAutoRetry:
+		s.DisableTxnAutoRetry = TiDBOptOn(val)
+	case TiDBEnableStreaming:
+		s.EnableStreaming = TiDBOptOn(val)
+	case TiDBOptimizerSelectivityLevel:
+		s.OptimizerSelectivityLevel = tidbOptPositiveInt32(val, DefTiDBOptimizerSelectivityLevel)
+	case TiDBEnableTablePartition:
+		s.EnableTablePartition = TiDBOptOn(val)
+	case TiDBDDLReorgWorkerCount:
+		workerCnt := tidbOptPositiveInt32(val, DefTiDBDDLReorgWorkerCount)
+		SetDDLReorgWorkerCounter(int32(workerCnt))
+	}
+	s.systems[name] = val
+	return nil
+}
+
 // special session variables.
 const (
 	SQLModeVar          = "sql_mode"
@@ -325,155 +564,76 @@ const (
 	MaxAllowedPacket    = "max_allowed_packet"
 	TimeZone            = "time_zone"
 	TxnIsolation        = "tx_isolation"
+	TxnIsolationOneShot = "tx_isolation_one_shot"
 )
 
 // TableDelta stands for the changed count for one table.
 type TableDelta struct {
-	Delta int64
-	Count int64
+	Delta    int64
+	Count    int64
+	ColSize  map[int64]int64
+	InitTime time.Time // InitTime is the time that this delta is generated.
 }
 
-// StatementContext contains variables for a statement.
-// It should be reset before executing a statement.
-type StatementContext struct {
-	// Set the following variables before execution
+// Concurrency defines concurrency values.
+type Concurrency struct {
+	// IndexLookupConcurrency is the number of concurrent index lookup worker.
+	IndexLookupConcurrency int
 
-	InInsertStmt           bool
-	InUpdateOrDeleteStmt   bool
-	InSelectStmt           bool
-	IgnoreTruncate         bool
-	IgnoreZeroInDate       bool
-	DividedByZeroAsWarning bool
-	TruncateAsWarning      bool
-	OverflowAsWarning      bool
-	InShowWarning          bool
+	// IndexLookupJoinConcurrency is the number of concurrent index lookup join inner worker.
+	IndexLookupJoinConcurrency int
 
-	// mu struct holds variables that change during execution.
-	mu struct {
-		sync.Mutex
-		affectedRows uint64
-		foundRows    uint64
-		warnings     []error
-	}
+	// DistSQLScanConcurrency is the number of concurrent dist SQL scan worker.
+	DistSQLScanConcurrency int
 
-	// Copied from SessionVars.TimeZone.
-	TimeZone     *time.Location
-	Priority     mysql.PriorityEnum
-	NotFillCache bool
-	BatchCheck   bool
+	// HashJoinConcurrency is the number of concurrent hash join outer worker.
+	HashJoinConcurrency int
+
+	// ProjectionConcurrency is the number of concurrent projection worker.
+	ProjectionConcurrency int64
+
+	// HashAggPartialConcurrency is the number of concurrent hash aggregation partial worker.
+	HashAggPartialConcurrency int
+
+	// HashAggPartialConcurrency is the number of concurrent hash aggregation final worker.
+	HashAggFinalConcurrency int
+
+	// IndexSerialScanConcurrency is the number of concurrent index serial scan worker.
+	IndexSerialScanConcurrency int
 }
 
-// AddAffectedRows adds affected rows.
-func (sc *StatementContext) AddAffectedRows(rows uint64) {
-	sc.mu.Lock()
-	sc.mu.affectedRows += rows
-	sc.mu.Unlock()
+// MemQuota defines memory quota values.
+type MemQuota struct {
+	// MemQuotaQuery defines the memory quota for a query.
+	MemQuotaQuery int64
+	// MemQuotaHashJoin defines the memory quota for a hash join executor.
+	MemQuotaHashJoin int64
+	// MemQuotaMergeJoin defines the memory quota for a merge join executor.
+	MemQuotaMergeJoin int64
+	// MemQuotaSort defines the memory quota for a sort executor.
+	MemQuotaSort int64
+	// MemQuotaTopn defines the memory quota for a top n executor.
+	MemQuotaTopn int64
+	// MemQuotaIndexLookupReader defines the memory quota for a index lookup reader executor.
+	MemQuotaIndexLookupReader int64
+	// MemQuotaIndexLookupJoin defines the memory quota for a index lookup join executor.
+	MemQuotaIndexLookupJoin int64
+	// MemQuotaNestedLoopApply defines the memory quota for a nested loop apply executor.
+	MemQuotaNestedLoopApply int64
 }
 
-// AffectedRows gets affected rows.
-func (sc *StatementContext) AffectedRows() uint64 {
-	sc.mu.Lock()
-	rows := sc.mu.affectedRows
-	sc.mu.Unlock()
-	return rows
-}
+// BatchSize defines batch size values.
+type BatchSize struct {
+	// DMLBatchSize indicates the size of batches for DML.
+	// It will be used when BatchInsert or BatchDelete is on.
+	DMLBatchSize int
 
-// FoundRows gets found rows.
-func (sc *StatementContext) FoundRows() uint64 {
-	sc.mu.Lock()
-	rows := sc.mu.foundRows
-	sc.mu.Unlock()
-	return rows
-}
+	// IndexJoinBatchSize is the batch size of a index lookup join.
+	IndexJoinBatchSize int
 
-// AddFoundRows adds found rows.
-func (sc *StatementContext) AddFoundRows(rows uint64) {
-	sc.mu.Lock()
-	sc.mu.foundRows += rows
-	sc.mu.Unlock()
-}
+	// IndexLookupSize is the number of handles for an index lookup task in index double read executor.
+	IndexLookupSize int
 
-// GetWarnings gets warnings.
-func (sc *StatementContext) GetWarnings() []error {
-	sc.mu.Lock()
-	warns := make([]error, len(sc.mu.warnings))
-	copy(warns, sc.mu.warnings)
-	sc.mu.Unlock()
-	return warns
-}
-
-// WarningCount gets warning count.
-func (sc *StatementContext) WarningCount() uint16 {
-	if sc.InShowWarning {
-		return 0
-	}
-	sc.mu.Lock()
-	wc := uint16(len(sc.mu.warnings))
-	sc.mu.Unlock()
-	return wc
-}
-
-// SetWarnings sets warnings.
-func (sc *StatementContext) SetWarnings(warns []error) {
-	sc.mu.Lock()
-	sc.mu.warnings = warns
-	sc.mu.Unlock()
-}
-
-// AppendWarning appends a warning.
-func (sc *StatementContext) AppendWarning(warn error) {
-	sc.mu.Lock()
-	if len(sc.mu.warnings) < math.MaxUint16 {
-		sc.mu.warnings = append(sc.mu.warnings, warn)
-	}
-	sc.mu.Unlock()
-}
-
-// HandleTruncate ignores or returns the error based on the StatementContext state.
-func (sc *StatementContext) HandleTruncate(err error) error {
-	// TODO: At present we have not checked whether the error can be ignored or treated as warning.
-	// We will do that later, and then append WarnDataTruncated instead of the error itself.
-	if err == nil {
-		return nil
-	}
-	if sc.IgnoreTruncate {
-		return nil
-	}
-	if sc.TruncateAsWarning {
-		sc.AppendWarning(err)
-		return nil
-	}
-	return err
-}
-
-// HandleOverflow treats ErrOverflow as warnings or returns the error based on the StmtCtx.OverflowAsWarning state.
-func (sc *StatementContext) HandleOverflow(err error, warnErr error) error {
-	if err == nil {
-		return nil
-	}
-
-	if sc.OverflowAsWarning {
-		sc.AppendWarning(warnErr)
-		return nil
-	}
-	return err
-}
-
-// ResetForRetry resets the changed states during execution.
-func (sc *StatementContext) ResetForRetry() {
-	sc.mu.Lock()
-	sc.mu.affectedRows = 0
-	sc.mu.foundRows = 0
-	sc.mu.warnings = nil
-	sc.mu.Unlock()
-}
-
-// MostRestrictStateContext gets a most restrict StatementContext.
-func MostRestrictStateContext() *StatementContext {
-	return &StatementContext{
-		IgnoreTruncate:    false,
-		OverflowAsWarning: false,
-		TruncateAsWarning: false,
-		TimeZone:          time.UTC,
-	}
+	// MaxChunkSize defines max row count of a Chunk during query execution.
+	MaxChunkSize int
 }

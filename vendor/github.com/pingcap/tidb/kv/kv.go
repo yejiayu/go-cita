@@ -15,7 +15,7 @@ package kv
 
 import (
 	"github.com/pingcap/tidb/store/tikv/oracle"
-	goctx "golang.org/x/net/context"
+	"golang.org/x/net/context"
 )
 
 // Transaction options
@@ -42,11 +42,13 @@ const (
 	NotFillCache
 	// SyncLog decides whether the WAL(write-ahead log) of this request should be synchronized.
 	SyncLog
+	// ForUpdate option would be set to true in 'select for update' transaction.
+	ForUpdate
 )
 
 // Priority value for transaction priority.
 const (
-	PriorityNormal int = iota
+	PriorityNormal = iota
 	PriorityLow
 	PriorityHigh
 )
@@ -109,6 +111,11 @@ type MemBuffer interface {
 	Size() int
 	// Len returns the number of entries in the DB.
 	Len() int
+	// Reset cleanup the MemBuffer
+	Reset()
+	// SetCap sets the MemBuffer capability, to reduce memory allocations.
+	// Please call it before you use the MemBuffer, otherwise it will not works.
+	SetCap(cap int)
 }
 
 // Transaction defines the interface for operations inside a Transaction.
@@ -116,7 +123,7 @@ type MemBuffer interface {
 type Transaction interface {
 	MemBuffer
 	// Commit commits the transaction operations to KV store.
-	Commit() error
+	Commit(context.Context) error
 	// Rollback undoes the transaction operations to KV store.
 	Rollback() error
 	// String implements fmt.Stringer interface.
@@ -135,14 +142,18 @@ type Transaction interface {
 	// Valid returns if the transaction is valid.
 	// A transaction become invalid after commit or rollback.
 	Valid() bool
+	// GetMemBuffer return the MemBuffer binding to this transaction.
+	GetMemBuffer() MemBuffer
 	// GetSnapshot returns the snapshot of this transaction.
 	GetSnapshot() Snapshot
+	// SetVars sets variables to the transaction.
+	SetVars(vars *Variables)
 }
 
 // Client is used to send request to KV layer.
 type Client interface {
 	// Send sends request to KV layer, returns a Response.
-	Send(ctx goctx.Context, req *Request) Response
+	Send(ctx context.Context, req *Request, vars *Variables) Response
 
 	// IsRequestTypeSupported checks if reqType and subType is supported.
 	IsRequestTypeSupported(reqType, subType int64) bool
@@ -150,10 +161,11 @@ type Client interface {
 
 // ReqTypes.
 const (
-	ReqTypeSelect  = 101
-	ReqTypeIndex   = 102
-	ReqTypeDAG     = 103
-	ReqTypeAnalyze = 104
+	ReqTypeSelect   = 101
+	ReqTypeIndex    = 102
+	ReqTypeDAG      = 103
+	ReqTypeAnalyze  = 104
+	ReqTypeChecksum = 105
 
 	ReqSubTypeBasic      = 0
 	ReqSubTypeDesc       = 10000
@@ -187,14 +199,25 @@ type Request struct {
 	NotFillCache bool
 	// SyncLog decides whether the WAL(write-ahead log) of this request should be synchronized.
 	SyncLog bool
+	// Streaming indicates using streaming API for this request, result in that one Next()
+	// call would not corresponds to a whole region result.
+	Streaming bool
+}
+
+// ResultSubset represents a result subset from a single storage unit.
+// TODO: Find a better interface for ResultSubset that can reuse bytes.
+type ResultSubset interface {
+	// GetData gets the data.
+	GetData() []byte
+	// GetStartKey gets the start key.
+	GetStartKey() Key
 }
 
 // Response represents the response returned from KV layer.
 type Response interface {
 	// Next returns a resultSubset from a single storage unit.
 	// When full result set is returned, nil is returned.
-	// TODO: Find a better interface for resultSubset that can avoid allocation and reuse bytes.
-	Next() (resultSubset []byte, err error)
+	Next(ctx context.Context) (resultSubset ResultSubset, err error)
 	// Close response.
 	Close() error
 }
@@ -204,6 +227,8 @@ type Snapshot interface {
 	Retriever
 	// BatchGet gets a batch of values from snapshot.
 	BatchGet(keys []Key) (map[string][]byte, error)
+	// SetPriority snapshot set the priority
+	SetPriority(priority int)
 }
 
 // Driver is the interface that must be implemented by a KV storage.
