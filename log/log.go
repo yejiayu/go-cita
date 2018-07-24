@@ -36,7 +36,7 @@ func init() {
 // Info logs to the INFO log.
 // Arguments are handled in the manner of fmt.Print; a newline is appended if missing.
 func Info(args ...interface{}) {
-	logging.Info(args)
+	logging.Info(args...)
 }
 
 // Infof logs to the INFO log.
@@ -81,4 +81,14 @@ func Fatal(args ...interface{}) {
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Fatalf(format string, args ...interface{}) {
 	logging.Fatalf(format, args...)
+}
+
+// Debug logs a message at level Debug on the standard logger.
+func Debug(args ...interface{}) {
+	logging.Debug(args...)
+}
+
+// Debugf logs a message at level Debug on the standard logger.
+func Debugf(format string, args ...interface{}) {
+	logging.Debugf(format, args...)
 }

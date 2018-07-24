@@ -16,48 +16,88 @@
 package raw
 
 import (
+	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pingcap/tidb/config"
+	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/store/tikv"
 )
 
 type Interface interface {
-	Put(key, value []byte) error
-	Get(key []byte) ([]byte, error)
-	Delete(key []byte) error
+	Put(ctx context.Context, tableName, key, value []byte) error
+	Get(ctx context.Context, tableName, key []byte) ([]byte, error)
+	Delete(ctx context.Context, tableName, key []byte) error
 
-	Scan(prefix []byte, limit int) ([][]byte, [][]byte, error)
+	Scan(ctx context.Context, tableName, prefix []byte, limit int) ([][]byte, [][]byte, error)
+
+	BeginTransaction(ctx context.Context) (Transaction, error)
 }
 
 func New(urls []string) (Interface, error) {
-	// "47.75.129.215:2379", "47.75.129.215:2380", "47.75.129.215:2381"
 	client, err := tikv.NewRawKVClient(urls, config.Security{})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create the RawKVClient %s", err)
 	}
 
+	driver := tikv.Driver{}
+	storage, err := driver.Open("tikv://" + strings.Join(urls, ","))
+	if err != nil {
+		return nil, err
+	}
+	storage.Begin()
+
 	return &rawDB{
-		client: client,
+		client:  client,
+		storage: storage,
 	}, nil
 }
 
 type rawDB struct {
-	client *tikv.RawKVClient
+	client  *tikv.RawKVClient
+	storage kv.Storage
 }
 
-func (db *rawDB) Put(key, value []byte) error {
-	return db.client.Put(key, value)
+func (db *rawDB) Put(ctx context.Context, tableName, key, value []byte) error {
+	return db.client.Put(buildKey(tableName, key), value)
 }
 
-func (db *rawDB) Get(key []byte) ([]byte, error) {
-	return db.client.Get(key)
+func (db *rawDB) Get(ctx context.Context, tableName, key []byte) ([]byte, error) {
+	return db.client.Get(buildKey(tableName, key))
+	// data, err := db.client.Get(buildKey(tableName, key))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// if len(data) > 0 {
+	// 	return nil, errors.DatabaseNotFound
+	// }
+	//
+	// return data, nil
 }
 
-func (db *rawDB) Delete(key []byte) error {
-	return db.client.Delete(key)
+func (db *rawDB) Delete(ctx context.Context, tableName, key []byte) error {
+	return db.client.Delete(buildKey(tableName, key))
 }
 
-func (db *rawDB) Scan(prefix []byte, limit int) ([][]byte, [][]byte, error) {
-	return db.client.Scan(prefix, limit)
+func (db *rawDB) Scan(ctx context.Context, tableName, prefix []byte, limit int) ([][]byte, [][]byte, error) {
+	return db.client.Scan(buildKey(tableName, prefix), limit)
+}
+
+func (db *rawDB) BeginTransaction(ctx context.Context) (Transaction, error) {
+	tx, err := db.storage.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	return beginTransaction(ctx, tx), nil
+}
+
+func buildKey(tableName, key []byte) []byte {
+	if key != nil {
+		return append(tableName, key...)
+	}
+
+	return tableName
 }

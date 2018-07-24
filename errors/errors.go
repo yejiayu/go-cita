@@ -32,11 +32,11 @@ type msg struct {
 	errString string
 }
 
-func (m *msg) Error() string {
+func (m msg) Error() string {
 	return m.errString
 }
 
-func (m *msg) Build(format string, params ...interface{}) Error {
+func (m msg) Build(format string, params ...interface{}) Error {
 	message := fmt.Sprintf(format, params)
 	m.errString = fmt.Sprintf("%s, %s", m.errString, message)
 	return m

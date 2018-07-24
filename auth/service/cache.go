@@ -67,20 +67,3 @@ func (c *cache) setHistoryTx(height uint64, txHashes []common.Hash) error {
 	_, err := c.client.Do("SADD", fmt.Sprintf("history.txs.%d", height), keys)
 	return err
 }
-
-func (c *cache) historyTxExists(height uint64, txHash common.Hash) (bool, error) {
-	reply, err := c.client.Do("SISMEMBER", fmt.Sprintf("history.txs.%d", height), txHash.Hex())
-	if err != nil {
-		return false, err
-	}
-	return reply == nil, nil
-}
-
-func (c *cache) deleteHistoryTx(height uint64) error {
-	_, err := c.client.Do("DEL", fmt.Sprintf("history.txs.%d", height))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}

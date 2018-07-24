@@ -44,20 +44,23 @@ func (m *Mutation) SendTransaction(p graphql.ResolveParams) (interface{}, error)
 		data = common.Hex2Bytes(untx.Transaction.Data[2:])
 	}
 
-	reply, err := m.clients.auth.SendTransaction(p.Context, &pbTypes.UnverifiedTransaction{
-		Signature: common.Hex2Bytes(untx.Signature[2:]),
-		Crypto:    pbTypes.Crypto(untx.Crypto),
-		Transaction: &pbTypes.Transaction{
-			To:              to,
-			Nonce:           untx.Transaction.Nonce,
-			Quota:           untx.Transaction.Quota,
-			ValidUntilBlock: untx.Transaction.ValidUntilBlock,
-			Data:            data,
-			Value:           untx.Transaction.Value,
-			ChainId:         untx.Transaction.ChainID,
-			Version:         untx.Transaction.Version,
+	req := &pbTypes.SendTransactionReq{
+		Untx: &pbTypes.UnverifiedTransaction{
+			Signature: common.Hex2Bytes(untx.Signature[2:]),
+			Crypto:    pbTypes.Crypto(untx.Crypto),
+			Transaction: &pbTypes.Transaction{
+				To:              to,
+				Nonce:           untx.Transaction.Nonce,
+				Quota:           untx.Transaction.Quota,
+				ValidUntilBlock: untx.Transaction.ValidUntilBlock,
+				Data:            data,
+				Value:           untx.Transaction.Value,
+				ChainId:         untx.Transaction.ChainID,
+				Version:         untx.Transaction.Version,
+			},
 		},
-	})
+	}
+	reply, err := m.clients.auth.SendTransaction(p.Context, req)
 
 	if err != nil {
 		return nil, err

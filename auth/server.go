@@ -17,31 +17,57 @@ package auth
 
 import (
 	"context"
+	"net"
 
+	"github.com/ethereum/go-ethereum/common"
 	"google.golang.org/grpc"
 
 	"github.com/yejiayu/go-cita/auth/service"
+	"github.com/yejiayu/go-cita/database"
+	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/types"
 )
 
-func newServer(srv service.Service) *grpc.Server {
+func New(port string, dbFactory database.Factory) error {
 	s := grpc.NewServer()
-	types.RegisterAuthServer(s, &server{srv: srv})
-	return s
+	svc, err := service.New(dbFactory)
+	if err != nil {
+		return err
+	}
+
+	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("The auth server listens on port %s", port)
+	types.RegisterAuthServer(s, &server{svc: svc})
+	return s.Serve(lis)
 }
 
 // AuthServer is the server API for Auth service.
 type server struct {
-	srv service.Service
+	svc service.Interface
 }
 
-func (s *server) SendTransaction(ctx context.Context, untx *types.UnverifiedTransaction) (*types.SendTransactionReply, error) {
-	hash, err := s.srv.Untx(untx)
+func (s *server) SendTransaction(ctx context.Context, req *types.SendTransactionReq) (*types.SendTransactionRes, error) {
+	hash, err := s.svc.Auth(ctx, req.GetUntx())
+	if err != nil {
+		return nil, err
+	}
+	log.Info(common.ToHex(hash))
+	return &types.SendTransactionRes{
+		TxHash: hash,
+	}, nil
+}
+
+func (s *server) PackTransactions(ctx context.Context, req *types.PackTransactionsReq) (*types.PackTransactionsRes, error) {
+	hashes, err := s.svc.PackTransactions(ctx, req.GetHeight())
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.SendTransactionReply{
-		TxHash: hash.Bytes(),
+	return &types.PackTransactionsRes{
+		TxHashes: hashes,
 	}, nil
 }

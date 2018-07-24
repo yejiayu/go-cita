@@ -16,6 +16,9 @@
 package tx
 
 import (
+	"context"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/protobuf/proto"
 
 	"github.com/yejiayu/go-cita/database/raw"
@@ -23,35 +26,78 @@ import (
 )
 
 var (
-	txPoolPrefix = byte(20)
+	txTable     = []byte("tx-")
+	txPoolTable = []byte("tx-pool-")
 )
 
 type Interface interface {
-	AddPool(signedTx *types.SignedTransaction) error
+	AddPool(ctx context.Context, signedTx *types.SignedTransaction) error
+
+	GetByHash(ctx context.Context, hash common.Hash) (*types.SignedTransaction, error)
+	GetTxhashesFromPool(ctx context.Context, limit int) ([][]byte, error)
+	Exists(ctx context.Context, hash common.Hash) (bool, error)
+
+	UpdateTx(ctx context.Context, hashes [][]byte) error
 }
 
-func New(rawDB raw.Interface) Interface {
-	return &txDB{rawDB: rawDB}
+func New(raw raw.Interface) Interface {
+	return &txDB{raw: raw}
 }
 
 type txDB struct {
-	rawDB raw.Interface
+	raw raw.Interface
 }
 
-func (db *txDB) AddPool(signedTx *types.SignedTransaction) error {
+func (db *txDB) AddPool(ctx context.Context, signedTx *types.SignedTransaction) error {
 	data, err := proto.Marshal(signedTx)
 	if err != nil {
 		return err
 	}
 
-	key := txPoolKey(signedTx.GetTxHash())
-	return db.rawDB.Put(key, data)
+	// TODO: begin transaction
+	if err := db.raw.Put(ctx, txTable, signedTx.GetTxHash(), data); err != nil {
+		return err
+	}
+	return db.raw.Put(ctx, txPoolTable, signedTx.GetTxHash(), signedTx.GetTxHash())
 }
 
-func txPoolKey(key []byte) []byte {
-	return joinKey(txPoolPrefix, key)
+func (db *txDB) GetByHash(ctx context.Context, hash common.Hash) (*types.SignedTransaction, error) {
+	data, err := db.raw.Get(ctx, txTable, hash.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	var signedTx types.SignedTransaction
+	if err := proto.Unmarshal(data, &signedTx); err != nil {
+		return nil, err
+	}
+
+	return &signedTx, nil
 }
 
-func joinKey(prefix byte, key []byte) []byte {
-	return append(append([]byte{prefix}, []byte(".")...), key...)
+func (db *txDB) UpdateTx(ctx context.Context, hashes [][]byte) error {
+	for _, hash := range hashes {
+		if err := db.raw.Delete(ctx, txPoolTable, hash); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *txDB) Exists(ctx context.Context, hash common.Hash) (bool, error) {
+	data, err := db.raw.Get(ctx, txTable, hash.Bytes())
+	if err != nil {
+		return false, err
+	}
+	return len(data) > 0, nil
+}
+
+func (db *txDB) GetTxhashesFromPool(ctx context.Context, limit int) ([][]byte, error) {
+	_, hashes, err := db.raw.Scan(ctx, txPoolTable, nil, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return hashes, nil
 }

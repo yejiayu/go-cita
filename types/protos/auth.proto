@@ -1,72 +1,50 @@
 syntax = "proto3";
 
-import "blockchain.proto";
-
-enum Ret {
-    OK = 0;
-    InvalidNonce = 1;
-    Dup = 2;
-    InvalidUntilBlock = 3;
-    BadSig = 4;
-    NotReady = 5;
-    Busy = 6;
-    BadChainId = 7;
-    QuotaNotEnough = 8;
+enum Crypto {
+  SECP = 0;
+  SM2 = 1;
 }
 
-message VerifyTxReq {
-    uint64 valid_until_block = 1;
-    bytes hash = 2;
-    bytes signature = 3;
-    Crypto crypto = 4;
-    bytes tx_hash = 5;
-    bytes signer = 6; // public key only set in BlockReq
-    string nonce = 7;
-    uint32 chain_id = 8;
-    uint64 quota = 9;
+message Transaction {
+  string to = 1;
+  string nonce = 2;
+  uint64 quota = 3;
+  uint64 valid_until_block = 4;
+  bytes data = 5;
+  uint64 value = 6;
+  uint32 chain_id = 7;
+  uint32 version = 8;
 }
 
-message VerifyTxResp {
-    bytes tx_hash = 1;
-    Ret ret = 2;
-    bytes signer = 3; // public key only set in TxResp
-    uint32 received_chain_id = 4;
-    uint32 expected_chain_id = 5;
+message UnverifiedTransaction {
+  Transaction transaction = 1;
+  bytes signature = 2;
+  Crypto crypto = 3;
 }
 
-message VerifyBlockReq {
-    uint64 id = 1;
-    repeated VerifyTxReq reqs = 2;
+message SignedTransaction {
+  UnverifiedTransaction transaction_with_sig = 1;
+  bytes tx_hash = 2;  // SignedTransaction hash
+  bytes signer = 3; //public key
 }
 
-message VerifyBlockResp {
-    uint64 id = 1;
-    Ret ret = 2;
+message SendTransactionReq {
+  UnverifiedTransaction untx = 1;
 }
 
-message BlockTxHashes {
-    uint64 height = 1;
-    repeated bytes tx_hashes = 2;
-    uint64 block_gas_limit = 3;
-    AccountGasLimit account_gas_limit = 4;
-    bool check_quota = 5;
+message SendTransactionRes {
+  bytes tx_hash = 1;
 }
 
-message BlockTxHashesReq {
-    uint64 height = 1;
+message PackTransactionsReq {
+  uint64 height = 1;
 }
 
-message Miscellaneous {
-    uint32 chain_id = 1;
-}
-
-message MiscellaneousReq {
-}
-
-message SendTransactionReply{
-  bytes txHash = 1;
+message PackTransactionsRes {
+  repeated bytes tx_hashes = 1;
 }
 
 service Auth {
-  rpc SendTransaction (UnverifiedTransaction) returns (SendTransactionReply) {}
+  rpc SendTransaction (SendTransactionReq) returns (SendTransactionRes) {}
+  rpc PackTransactions (PackTransactionsReq) returns (PackTransactionsRes) {}
 }

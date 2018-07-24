@@ -20,12 +20,13 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/graphql-go/handler"
+	"github.com/yejiayu/go-cita/log"
 
 	"github.com/yejiayu/go-cita/api/resolvers"
 	"github.com/yejiayu/go-cita/api/schema"
 )
 
-func NewServer(port, authServer string) error {
+func New(port, authServer string) error {
 	r, err := resolvers.New(authServer)
 	if err != nil {
 		return err
@@ -45,6 +46,6 @@ func NewServer(port, authServer string) error {
 	// serve HTTP
 	http.Handle("/", h)
 
-	glog.Infof("The api server listens on port %s", port)
+	log.Infof("The api server listens on port %s", port)
 	return http.ListenAndServe(":"+port, nil)
 }
