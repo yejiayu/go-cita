@@ -1,0 +1,27 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: tikv
+  namespace: cita
+spec:
+  hosts:
+  - {{ .Values.tikv_ip }}
+  ports:
+  - number: 2379
+    name: pd1
+    protocol: tcp
+  - number: 2380
+    name: pd2
+    protocol: tcp
+  - number: 2381
+    name: pd3
+    protocol: tcp
+  - number: 20160
+    name: tikv1
+    protocol: tcp
+  - number: 20161
+    name: tikv2
+    protocol: tcp
+  - number: 20162
+    name: tikv3
+    protocol: tcp
