@@ -19,6 +19,7 @@ import (
 	"github.com/graphql-go/graphql"
 
 	"github.com/yejiayu/go-cita/api/resolvers"
+	"github.com/yejiayu/go-cita/api/schema/types"
 )
 
 func NewQuery(r *resolvers.Resolver) *graphql.Object {
@@ -28,6 +29,10 @@ func NewQuery(r *resolvers.Resolver) *graphql.Object {
 			"Hello": &graphql.Field{
 				Type:    graphql.String,
 				Resolve: r.Query.Hello,
+			},
+			"LatestHeight": &graphql.Field{
+				Type:    types.Uint64,
+				Resolve: r.Query.LatestHeight,
 			},
 		},
 	})

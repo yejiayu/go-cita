@@ -15,13 +15,8 @@
 
 package state
 
-import (
-	"github.com/yejiayu/go-cita/database/raw"
-)
-
 type Interface interface {
 }
 
 type stateDB struct {
-	rawDB raw.Interface
 }

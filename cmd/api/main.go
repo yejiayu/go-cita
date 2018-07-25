@@ -16,26 +16,41 @@
 package main
 
 import (
-	"gopkg.in/alecthomas/kingpin.v2"
+	"flag"
 
-	"github.com/golang/glog"
+	"github.com/caarlos0/env"
+
 	"github.com/yejiayu/go-cita/api"
+	"github.com/yejiayu/go-cita/tools/tracing"
+	"github.com/yejiayu/go-cita/log"
 )
 
-var (
-	serverPort = kingpin.Flag("port", "server port of api").Default("8080").String()
+type config struct {
+	Port string `env:"PORT" envDefault:"8000"`
 
-	authServer = kingpin.Flag("auth-server", "url of auth server").Default("127.0.0.1:9001").String()
-)
+	AuthURL    string `env:"AUTH_URL" envDefault:"127.0.0.1:8001"`
+	ChainURL   string `env:"CHAIN_URL" envDefault:"127.0.0.1:8003"`
+	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
+}
 
 func main() {
-	kingpin.Parse()
-	defer glog.Flush()
+	flag.Parse()
 
-	if err := api.NewServer(
-		*serverPort,
-		*authServer,
-	); err != nil {
-		glog.Error(err)
+	cfg := config{}
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Infof("api config %+v", cfg)
+	otClose, err := tracing.Configure("cita-api", cfg.TracingURL)
+	if err != nil {
+		log.Error(err)
+	} else {
+		defer otClose.Close()
+	}
+
+	if err := api.New(cfg.Port, cfg.AuthURL, cfg.ChainURL); err != nil {
+		log.Fatal(err)
 	}
 }

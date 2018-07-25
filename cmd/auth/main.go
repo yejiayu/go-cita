@@ -16,47 +16,48 @@
 package main
 
 import (
-	"github.com/golang/glog"
-	"gopkg.in/alecthomas/kingpin.v2"
+	"flag"
+
+	"github.com/caarlos0/env"
+
+	"github.com/yejiayu/go-cita/log"
+	"github.com/yejiayu/go-cita/tools/tracing"
 
 	"github.com/yejiayu/go-cita/auth"
 	"github.com/yejiayu/go-cita/database"
-	"github.com/yejiayu/go-cita/mq"
 )
 
-var (
-	dbURLs = kingpin.Flag("db-url", "url of tikv").Required().Strings()
-	mqURL  = kingpin.Flag("mq-url", "url of rabbitmq").Default("amqp://guest:guest@localhost:5672").String()
-	port   = kingpin.Flag("port", "auth server port").Default("9001").String()
-)
+type config struct {
+	Port       string   `env:"PORT" envDefault:"8001"`
+	DbURL      []string `env:"DB_URL" envSeparator:"," envDefault:"47.75.129.215:2379,47.75.129.215:2380,47.75.129.215:2381"`
+	RedisURL   string   `env:"REDIS_URL" envDefault:"127.0.0.1:6379"`
+	TracingURL string   `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
+}
 
 func main() {
-	kingpin.Parse()
-	defer glog.Flush()
+	flag.Parse()
 
-	subKeys := []mq.RoutingKey{
-		mq.NetworkUnverifiedTx,
-	}
-
-	queue, err := mq.New(*mqURL, "auth", subKeys)
+	cfg := config{}
+	err := env.Parse(&cfg)
 	if err != nil {
-		glog.Fatal(err)
+		log.Fatal(err)
 	}
 
-	dbFactory, err := database.NewFactory(*dbURLs)
+	log.Infof("env config %+v", cfg)
+
+	otClose, err := tracing.Configure("cita-auth", cfg.TracingURL)
 	if err != nil {
-		glog.Fatal(err)
+		log.Error(err)
+	} else {
+		defer otClose.Close()
 	}
 
-	quit := make(chan error)
-	a, err := auth.New(queue, dbFactory)
+	dbFactory, err := database.NewFactory(cfg.DbURL)
 	if err != nil {
-		glog.Fatal(err)
+		log.Fatal(err)
 	}
 
-	a.Run(*port, quit)
-	glog.Info("auth start")
-	if err := <-quit; err != nil {
-		glog.Fatal(err)
+	if err := auth.New(cfg.Port, cfg.RedisURL, dbFactory); err != nil {
+		log.Fatal(err)
 	}
 }

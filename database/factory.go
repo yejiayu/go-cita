@@ -27,22 +27,23 @@ type Factory interface {
 }
 
 func NewFactory(urls []string) (Factory, error) {
-	rawDB, err := raw.New(urls)
+	// "47.75.129.215:2379", "47.75.129.215:2380", "47.75.129.215:2381"
+	raw, err := raw.New(urls)
 	if err != nil {
 		return nil, err
 	}
 
-	return &factory{rawDB: rawDB}, nil
+	return &factory{raw: raw}, nil
 }
 
 type factory struct {
-	rawDB raw.Interface
+	raw raw.Interface
 }
 
 func (f *factory) BlockDB() block.Interface {
-	return block.New(f.rawDB)
+	return block.New(f.raw)
 }
 
 func (f *factory) TxDB() tx.Interface {
-	return tx.New(f.rawDB)
+	return tx.New(f.raw)
 }

@@ -1,0 +1,53 @@
+# Default values for helm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+namespace: cita
+
+tikv: 47.75.129.215:2379,47.75.129.215:2380,47.75.129.215:2381
+tikv_ip: 47.75.129.215
+redis_url: redis:6379
+
+auth:
+  name: cita-auth
+  replicaCount: 1
+  image:
+    repository: yejiayu/cita-auth
+    tag: v0.2.6
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
+
+chain:
+  name: cita-chain
+  replicaCount: 1
+  image:
+    repository: yejiayu/cita-chain
+    tag: v0.2.6
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8003
+
+consensus:
+  name: cita-consensus
+  replicaCount: 1
+  image:
+    repository: yejiayu/cita-consensus
+    tag: v0.2.6
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8004
+
+evm:
+  name: cita-api
+  replicaCount: 1
+  image:
+    repository: yejiayu/cita-api
+    tag: v0.2.6
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000

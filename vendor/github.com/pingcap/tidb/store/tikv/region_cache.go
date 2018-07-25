@@ -19,16 +19,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/google/btree"
 	"github.com/juju/errors"
-	"github.com/petar/GoLLRB/llrb"
 	"github.com/pingcap/kvproto/pkg/kvrpcpb"
 	"github.com/pingcap/kvproto/pkg/metapb"
 	"github.com/pingcap/pd/pd-client"
-	goctx "golang.org/x/net/context"
+	"github.com/pingcap/tidb/metrics"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 )
 
 const (
+	btreeDegree             = 32
 	rcDefaultRegionCacheTTL = time.Minute * 10
 )
 
@@ -51,7 +53,7 @@ type RegionCache struct {
 	mu struct {
 		sync.RWMutex
 		regions map[RegionVerID]*CachedRegion
-		sorted  *llrb.LLRB
+		sorted  *btree.BTree
 	}
 	storeMu struct {
 		sync.RWMutex
@@ -65,7 +67,7 @@ func NewRegionCache(pdClient pd.Client) *RegionCache {
 		pdClient: pdClient,
 	}
 	c.mu.regions = make(map[RegionVerID]*CachedRegion)
-	c.mu.sorted = llrb.New()
+	c.mu.sorted = btree.New(btreeDegree)
 	c.storeMu.stores = make(map[uint64]*Store)
 	return c
 }
@@ -259,9 +261,9 @@ func (c *RegionCache) UpdateLeader(regionID RegionVerID, leaderStoreID uint64) {
 
 // insertRegionToCache tries to insert the Region to cache.
 func (c *RegionCache) insertRegionToCache(r *Region) {
-	old := c.mu.sorted.ReplaceOrInsert(newRBItem(r))
+	old := c.mu.sorted.ReplaceOrInsert(newBtreeItem(r))
 	if old != nil {
-		delete(c.mu.regions, old.(*llrbItem).region.VerID())
+		delete(c.mu.regions, old.(*btreeItem).region.VerID())
 	}
 	c.mu.regions[r.VerID()] = &CachedRegion{
 		region:     r,
@@ -291,8 +293,8 @@ func (c *RegionCache) getCachedRegion(id RegionVerID) *Region {
 // used after c.mu is RUnlock().
 func (c *RegionCache) searchCachedRegion(key []byte) *Region {
 	var r *Region
-	c.mu.sorted.DescendLessOrEqual(newRBSearchItem(key), func(item llrb.Item) bool {
-		r = item.(*llrbItem).region
+	c.mu.sorted.DescendLessOrEqual(newBtreeSearchItem(key), func(item btree.Item) bool {
+		r = item.(*btreeItem).region
 		return false
 	})
 	if r != nil && r.Contains(key) {
@@ -318,7 +320,8 @@ func (c *RegionCache) dropRegionFromCache(verID RegionVerID) {
 	if !ok {
 		return
 	}
-	c.mu.sorted.Delete(newRBItem(r.region))
+	metrics.TiKVRegionCacheCounter.WithLabelValues("drop_region_from_cache", metrics.RetLabel(nil)).Inc()
+	c.mu.sorted.Delete(newBtreeItem(r.region))
 	delete(c.mu.regions, verID)
 }
 
@@ -332,8 +335,8 @@ func (c *RegionCache) loadRegion(bo *Backoffer, key []byte) (*Region, error) {
 				return nil, errors.Trace(err)
 			}
 		}
-
 		meta, leader, err := c.pdClient.GetRegion(bo.ctx, key)
+		metrics.TiKVRegionCacheCounter.WithLabelValues("get_region", metrics.RetLabel(err)).Inc()
 		if err != nil {
 			backoffErr = errors.Errorf("loadRegion from PD failed, key: %q, err: %v", key, err)
 			continue
@@ -366,8 +369,8 @@ func (c *RegionCache) loadRegionByID(bo *Backoffer, regionID uint64) (*Region, e
 				return nil, errors.Trace(err)
 			}
 		}
-
 		meta, leader, err := c.pdClient.GetRegionByID(bo.ctx, regionID)
+		metrics.TiKVRegionCacheCounter.WithLabelValues("get_region_by_id", metrics.RetLabel(err)).Inc()
 		if err != nil {
 			backoffErr = errors.Errorf("loadRegion from PD failed, regionID: %v, err: %v", regionID, err)
 			continue
@@ -428,8 +431,9 @@ func (c *RegionCache) ClearStoreByID(id uint64) {
 func (c *RegionCache) loadStoreAddr(bo *Backoffer, id uint64) (string, error) {
 	for {
 		store, err := c.pdClient.GetStore(bo.ctx, id)
+		metrics.TiKVRegionCacheCounter.WithLabelValues("get_store", metrics.RetLabel(err)).Inc()
 		if err != nil {
-			if errors.Cause(err) == goctx.Canceled {
+			if errors.Cause(err) == context.Canceled {
 				return "", errors.Trace(err)
 			}
 			err = errors.Errorf("loadStore from PD failed, id: %d, err: %v", id, err)
@@ -445,33 +449,38 @@ func (c *RegionCache) loadStoreAddr(bo *Backoffer, id uint64) (string, error) {
 	}
 }
 
-// OnRequestFail is used for clearing cache when a tikv server does not respond.
-func (c *RegionCache) OnRequestFail(ctx *RPCContext, err error) {
-	// Switch region's leader peer to next one.
-	regionID := ctx.Region
+// DropStoreOnSendRequestFail is used for clearing cache when a tikv server does not respond.
+func (c *RegionCache) DropStoreOnSendRequestFail(ctx *RPCContext, err error) {
+	// We need to drop the store only when the request is the first one failed on this store.
+	// Because too many concurrently requests trying to drop the store will be blocked on the lock.
+	failedRegionID := ctx.Region
+	failedStoreID := ctx.Peer.StoreId
 	c.mu.Lock()
-	if cachedregion, ok := c.mu.regions[regionID]; ok {
-		region := cachedregion.region
-		if !region.OnRequestFail(ctx.Peer.GetStoreId()) {
-			c.dropRegionFromCache(regionID)
-		}
+	_, ok := c.mu.regions[failedRegionID]
+	if !ok {
+		// The failed region is dropped already by another request, we don't need to iterate the regions
+		// and find regions on the failed store to drop.
+		c.mu.Unlock()
+		return
 	}
-	c.mu.Unlock()
-	// Store's meta may be out of date.
-	storeID := ctx.Peer.GetStoreId()
-	c.storeMu.Lock()
-	delete(c.storeMu.stores, storeID)
-	c.storeMu.Unlock()
-
-	log.Infof("drop regions of store %d from cache due to request fail, err: %v", storeID, err)
-
-	c.mu.Lock()
 	for id, r := range c.mu.regions {
-		if r.region.peer.GetStoreId() == storeID {
+		if r.region.peer.GetStoreId() == failedStoreID {
 			c.dropRegionFromCache(id)
 		}
 	}
 	c.mu.Unlock()
+
+	// Store's meta may be out of date.
+	var failedStoreAddr string
+	c.storeMu.Lock()
+	store, ok := c.storeMu.stores[failedStoreID]
+	if ok {
+		failedStoreAddr = store.Addr
+		delete(c.storeMu.stores, failedStoreID)
+	}
+	c.storeMu.Unlock()
+	log.Infof("drop regions that on the store %d(%s) due to send request fail, err: %v",
+		failedStoreID, failedStoreAddr, err)
 }
 
 // OnRegionStale removes the old region and inserts new regions into the cache.
@@ -502,45 +511,33 @@ func (c *RegionCache) PDClient() pd.Client {
 	return c.pdClient
 }
 
-// moveLeaderToFirst moves the leader peer to the first and makes it easier to
-// try the next peer if the current peer does not respond.
-func moveLeaderToFirst(r *metapb.Region, leaderStoreID uint64) {
-	for i := range r.Peers {
-		if r.Peers[i].GetStoreId() == leaderStoreID {
-			r.Peers[0], r.Peers[i] = r.Peers[i], r.Peers[0]
-			return
-		}
-	}
-}
-
-// llrbItem is llrbTree's Item that uses []byte to compare.
-type llrbItem struct {
+// btreeItem is BTree's Item that uses []byte to compare.
+type btreeItem struct {
 	key    []byte
 	region *Region
 }
 
-func newRBItem(r *Region) *llrbItem {
-	return &llrbItem{
+func newBtreeItem(r *Region) *btreeItem {
+	return &btreeItem{
 		key:    r.StartKey(),
 		region: r,
 	}
 }
 
-func newRBSearchItem(key []byte) *llrbItem {
-	return &llrbItem{
+func newBtreeSearchItem(key []byte) *btreeItem {
+	return &btreeItem{
 		key: key,
 	}
 }
 
-func (item *llrbItem) Less(other llrb.Item) bool {
-	return bytes.Compare(item.key, other.(*llrbItem).key) < 0
+func (item *btreeItem) Less(other btree.Item) bool {
+	return bytes.Compare(item.key, other.(*btreeItem).key) < 0
 }
 
 // Region stores region's meta and its leader peer.
 type Region struct {
-	meta              *metapb.Region
-	peer              *metapb.Peer
-	unreachableStores []uint64
+	meta *metapb.Region
+	peer *metapb.Peer
 }
 
 // GetID returns id.
@@ -553,6 +550,11 @@ type RegionVerID struct {
 	id      uint64
 	confVer uint64
 	ver     uint64
+}
+
+// GetID returns the id of the region
+func (r *RegionVerID) GetID() uint64 {
+	return r.id
 }
 
 // VerID returns the Region's RegionVerID.
@@ -581,26 +583,6 @@ func (r *Region) GetContext() *kvrpcpb.Context {
 		RegionEpoch: r.meta.RegionEpoch,
 		Peer:        r.peer,
 	}
-}
-
-// OnRequestFail records unreachable peer and tries to select another valid peer.
-// It returns false if all peers are unreachable.
-func (r *Region) OnRequestFail(storeID uint64) bool {
-	if r.peer.GetStoreId() != storeID {
-		return true
-	}
-	r.unreachableStores = append(r.unreachableStores, storeID)
-L:
-	for _, p := range r.meta.Peers {
-		for _, id := range r.unreachableStores {
-			if p.GetStoreId() == id {
-				continue L
-			}
-		}
-		r.peer = p
-		return true
-	}
-	return false
 }
 
 // SwitchPeer switches current peer to the one on specific store. It returns

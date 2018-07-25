@@ -1,0 +1,31 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Values.chain.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.chain.name }}
+    chart: {{ template "helm.chart" . }}
+spec:
+  replicas: {{ .Values.chain.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.chain.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.chain.name }}
+    spec:
+      containers:
+        - name: {{ .Values.chain.name }}
+          env:
+            - name: DB_URL
+              value: {{ .Values.tikv }}
+            - name: EvmURL
+              value: evm:8101
+          image: "{{ .Values.chain.image.repository }}:{{ .Values.chain.image.tag }}"
+          imagePullPolicy: {{ .Values.chain.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.chain.service.port }}
+              protocol: TCP

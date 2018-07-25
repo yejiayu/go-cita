@@ -16,77 +16,41 @@
 package block
 
 import (
+	"context"
 	"encoding/binary"
 
 	"github.com/golang/protobuf/proto"
+
 	"github.com/yejiayu/go-cita/database/raw"
 	"github.com/yejiayu/go-cita/types"
 )
 
 var (
-	headerPrefix = byte(10)
-	bodyPrefix   = byte(11)
-
-	latestHeader = []byte("block.header.latest")
+	blockHeaderTable = []byte("block-header-")
+	blockBodyTable   = []byte("block-body-")
+	blockLatestTable = []byte("block-latest")
 )
 
 type Interface interface {
-	GetHeaderByHeight(height uint64) (*types.BlockHeader, error)
-	GetBodyByHeight(height uint64) (*types.BlockBody, error)
-	GetHeaderByLatest() (*types.BlockHeader, error)
+	GetHeaderByHeight(ctx context.Context, height uint64) (*types.BlockHeader, error)
+	GetBodyByHeight(ctx context.Context, height uint64) (*types.BlockBody, error)
+	GetHeaderByLatest(ctx context.Context) (*types.BlockHeader, error)
+
+	AddBlock(ctx context.Context, b *types.Block) error
 }
 
-func New(rawDB raw.Interface) Interface {
-	return &blockDB{rawDB: rawDB}
+func New(raw raw.Interface) Interface {
+	return &blockDB{raw: raw}
 }
 
 type blockDB struct {
-	rawDB raw.Interface
+	raw raw.Interface
 }
 
-func (db *blockDB) GetHeaderByHeight(height uint64) (*types.BlockHeader, error) {
-	data, err := db.rawDB.Get(headerKey(height))
+func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*types.BlockHeader, error) {
+	data, err := db.raw.Get(ctx, blockHeaderTable, uint64ToBytes(height))
 	if err != nil {
 		return nil, err
-	}
-
-	if data == nil {
-		return nil, nil
-	}
-
-	var h types.BlockHeader
-	if err := proto.Unmarshal(data, &h); err != nil {
-		return nil, err
-	}
-	return &h, nil
-}
-
-func (db *blockDB) GetBodyByHeight(height uint64) (*types.BlockBody, error) {
-	data, err := db.rawDB.Get(bodyKey(height))
-	if err != nil {
-		return nil, err
-	}
-
-	if data == nil {
-		return nil, nil
-	}
-
-	var body types.BlockBody
-	if err := proto.Unmarshal(data, &body); err != nil {
-		return nil, err
-	}
-
-	return &body, nil
-}
-
-func (db *blockDB) GetHeaderByLatest() (*types.BlockHeader, error) {
-	data, err := db.rawDB.Get(latestHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	if data == nil {
-		return nil, nil
 	}
 
 	var header types.BlockHeader
@@ -97,37 +61,88 @@ func (db *blockDB) GetHeaderByLatest() (*types.BlockHeader, error) {
 	return &header, nil
 }
 
-// func (db *blockDB) Scan(startHeight uint64, limit int) ([]*types.Block, error) {
-// 	_, values, err := db.rawDB.Scan(blockKey(startHeight), limit)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	var bs []*types.Block
-// 	for _, value := range values {
-// 		var b types.Block
-// 		if err := proto.Unmarshal(value, &b); err != nil {
-// 			return nil, err
-// 		}
-//
-// 		bs = append(bs, &b)
-// 	}
-//
-// 	return bs, nil
-// }
+func (db *blockDB) GetBodyByHeight(ctx context.Context, height uint64) (*types.BlockBody, error) {
+	data, err := db.raw.Get(ctx, blockBodyTable, uint64ToBytes(height))
+	if err != nil {
+		return nil, err
+	}
 
-func headerKey(height uint64) []byte {
-	var key []byte
-	binary.BigEndian.PutUint64(key, height)
-	return joinKey(headerPrefix, key)
+	var body types.BlockBody
+	if err := proto.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+
+	return &body, nil
 }
 
-func bodyKey(height uint64) []byte {
-	var key []byte
-	binary.BigEndian.PutUint64(key, height)
-	return joinKey(bodyPrefix, key)
+func (db *blockDB) GetHeaderByLatest(ctx context.Context) (*types.BlockHeader, error) {
+	height, err := db.getLatest(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return db.GetHeaderByHeight(ctx, height)
 }
 
-func joinKey(prefix byte, key []byte) []byte {
-	return append(append([]byte{prefix}, []byte(".")...), key...)
+func (db *blockDB) AddBlock(ctx context.Context, b *types.Block) error {
+	header := b.GetHeader()
+	hData, err := proto.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	// tx, err := db.raw.BeginTransaction(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// log.Info("put block header")
+	if err = db.raw.Put(ctx, blockHeaderTable, uint64ToBytes(header.GetHeight()), hData); err != nil {
+		// tx.Rollback()
+		return err
+	}
+
+	body := b.GetBody()
+	if body != nil && len(body.GetTxHashes()) > 0 {
+		bData, err := proto.Marshal(body)
+		if err != nil {
+			// tx.Rollback()
+			return err
+		}
+		if err := db.raw.Put(ctx, blockBodyTable, uint64ToBytes(header.GetHeight()), bData); err != nil {
+			// tx.Rollback()
+			return err
+		}
+	}
+
+	if err := db.raw.Put(ctx, blockLatestTable, nil, uint64ToBytes(header.GetHeight())); err != nil {
+		// tx.Rollback()
+		return err
+	}
+	return nil
+	// err = tx.Commit()
+	// if err != nil {
+	// 	log.Errorf("add block error %s", err)
+	// }
+	// log.Info("add block commited")
+	// return err
+}
+
+func (db *blockDB) getLatest(ctx context.Context) (uint64, error) {
+	data, err := db.raw.Get(ctx, blockLatestTable, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	return bytesToUint64(data), nil
+}
+
+func uint64ToBytes(num uint64) []byte {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, num)
+	return buf
+}
+
+func bytesToUint64(buf []byte) uint64 {
+	return binary.LittleEndian.Uint64(buf)
 }
