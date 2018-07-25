@@ -26,8 +26,8 @@ import (
 	"github.com/yejiayu/go-cita/api/schema"
 )
 
-func New(port, authServer string) error {
-	r, err := resolvers.New(authServer)
+func New(port, authClient, chainClient string) error {
+	r, err := resolvers.New(authClient, chainClient)
 	if err != nil {
 		return err
 	}

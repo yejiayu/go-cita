@@ -27,17 +27,26 @@ type Resolver struct {
 }
 
 type clients struct {
-	auth types.AuthClient
+	auth  types.AuthClient
+	chain types.ChainClient
 }
 
-func New(authServer string) (*Resolver, error) {
-	conn, err := grpc.Dial(authServer, grpc.WithInsecure())
+func New(authClient, chainClient string) (*Resolver, error) {
+	conn, err := grpc.Dial(authClient, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
+	auth := types.NewAuthClient(conn)
+
+	conn, err = grpc.Dial(chainClient, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	chain := types.NewChainClient(conn)
 
 	cs := &clients{
-		auth: types.NewAuthClient(conn),
+		auth:  auth,
+		chain: chain,
 	}
 
 	return &Resolver{
