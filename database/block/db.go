@@ -91,13 +91,14 @@ func (db *blockDB) AddBlock(ctx context.Context, b *types.Block) error {
 		return err
 	}
 
-	tx, err := db.raw.BeginTransaction(ctx)
-	if err != nil {
-		return err
-	}
+	// tx, err := db.raw.BeginTransaction(ctx)
+	// if err != nil {
+	// 	return err
+	// }
 
-	if err = tx.Put(blockHeaderTable, uint64ToBytes(header.GetHeight()), hData); err != nil {
-		tx.Rollback()
+	// log.Info("put block header")
+	if err = db.raw.Put(ctx, blockHeaderTable, uint64ToBytes(header.GetHeight()), hData); err != nil {
+		// tx.Rollback()
 		return err
 	}
 
@@ -105,20 +106,26 @@ func (db *blockDB) AddBlock(ctx context.Context, b *types.Block) error {
 	if body != nil && len(body.GetTxHashes()) > 0 {
 		bData, err := proto.Marshal(body)
 		if err != nil {
-			tx.Rollback()
+			// tx.Rollback()
 			return err
 		}
-		if err := tx.Put(blockBodyTable, uint64ToBytes(header.GetHeight()), bData); err != nil {
-			tx.Rollback()
+		if err := db.raw.Put(ctx, blockBodyTable, uint64ToBytes(header.GetHeight()), bData); err != nil {
+			// tx.Rollback()
 			return err
 		}
 	}
 
-	if err := tx.Put(blockLatestTable, nil, uint64ToBytes(header.GetHeight())); err != nil {
-		tx.Rollback()
+	if err := db.raw.Put(ctx, blockLatestTable, nil, uint64ToBytes(header.GetHeight())); err != nil {
+		// tx.Rollback()
 		return err
 	}
-	return tx.Commit()
+	return nil
+	// err = tx.Commit()
+	// if err != nil {
+	// 	log.Errorf("add block error %s", err)
+	// }
+	// log.Info("add block commited")
+	// return err
 }
 
 func (db *blockDB) getLatest(ctx context.Context) (uint64, error) {

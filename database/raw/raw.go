@@ -23,6 +23,8 @@ import (
 	"github.com/pingcap/tidb/config"
 	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/store/tikv"
+
+	"github.com/yejiayu/go-cita/log"
 )
 
 type Interface interface {
@@ -32,6 +34,7 @@ type Interface interface {
 
 	Scan(ctx context.Context, tableName, prefix []byte, limit int) ([][]byte, [][]byte, error)
 
+	// BeginTransaction(ctx context.Context) (kv.Transaction, error)
 	BeginTransaction(ctx context.Context) (Transaction, error)
 }
 
@@ -60,10 +63,21 @@ type rawDB struct {
 }
 
 func (db *rawDB) Put(ctx context.Context, tableName, key, value []byte) error {
+	log.Infof("database put, table name is %s", string(tableName))
+	// span, _ := ot.StartSpanFromContext(ctx, "database")
+	// defer span.Finish()
+	//
+	// span.SetTag("table_name", string(tableName))
+	// span.SetTag("method", "PUT")
 	return db.client.Put(buildKey(tableName, key), value)
 }
 
 func (db *rawDB) Get(ctx context.Context, tableName, key []byte) ([]byte, error) {
+	// span, _ := ot.StartSpanFromContext(ctx, "database")
+	// defer span.Finish()
+	//
+	// span.SetTag("table_name", string(tableName))
+	// span.SetTag("method", "GET")
 	return db.client.Get(buildKey(tableName, key))
 	// data, err := db.client.Get(buildKey(tableName, key))
 	// if err != nil {
@@ -78,12 +92,26 @@ func (db *rawDB) Get(ctx context.Context, tableName, key []byte) ([]byte, error)
 }
 
 func (db *rawDB) Delete(ctx context.Context, tableName, key []byte) error {
+	// span, _ := ot.StartSpanFromContext(ctx, "database")
+	// defer span.Finish()
+	//
+	// span.SetTag("table_name", string(tableName))
+	// span.SetTag("method", "DELETE")
 	return db.client.Delete(buildKey(tableName, key))
 }
 
 func (db *rawDB) Scan(ctx context.Context, tableName, prefix []byte, limit int) ([][]byte, [][]byte, error) {
+	// span, _ := ot.StartSpanFromContext(ctx, "database")
+	// defer span.Finish()
+	//
+	// span.SetTag("table_name", string(tableName))
+	// span.SetTag("method", "scan")
 	return db.client.Scan(buildKey(tableName, prefix), limit)
 }
+
+// func (db *rawDB) BeginTransaction(ctx context.Context) (kv.Transaction, error) {
+// 	return db.storage.Begin()
+// }
 
 func (db *rawDB) BeginTransaction(ctx context.Context) (Transaction, error) {
 	tx, err := db.storage.Begin()

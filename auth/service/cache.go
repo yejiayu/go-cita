@@ -16,16 +16,17 @@
 package service
 
 import (
+	"context"
 	"crypto/ecdsa"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/gomodule/redigo/redis"
+	ot "github.com/opentracing/opentracing-go"
 )
 
-func newCache() (*cache, error) {
-	client, err := redis.DialURL("redis://127.0.0.1:6379")
+func newCache(redisURL string) (*cache, error) {
+	client, err := redis.DialURL("redis://" + redisURL)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,12 @@ type cache struct {
 	client redis.Conn
 }
 
-func (c *cache) getPublicKey(hash common.Hash) (*ecdsa.PublicKey, error) {
+func (c *cache) getPublicKey(ctx context.Context, hash common.Hash) (*ecdsa.PublicKey, error) {
+	span, _ := ot.StartSpanFromContext(ctx, "publick-key-cache")
+	defer span.Finish()
+	span.SetTag("method", "HGET")
+	span.SetTag("tx_hash", hash.String())
+
 	reply, err := c.client.Do("HGET", "tx.pk", hash.String())
 	if err != nil {
 		return nil, err
@@ -53,17 +59,12 @@ func (c *cache) getPublicKey(hash common.Hash) (*ecdsa.PublicKey, error) {
 	return ethcrypto.DecompressPubkey(data)
 }
 
-func (c *cache) setPublicKey(hash common.Hash, pk *ecdsa.PublicKey) error {
+func (c *cache) setPublicKey(ctx context.Context, hash common.Hash, pk *ecdsa.PublicKey) error {
+	span, _ := ot.StartSpanFromContext(ctx, "publick-key-cache")
+	defer span.Finish()
+	span.SetTag("method", "HSET")
+	span.SetTag("tx_hash", hash.String())
+
 	_, err := c.client.Do("HSET", "tx.pk", hash.String(), ethcrypto.CompressPubkey(pk))
-	return err
-}
-
-func (c *cache) setHistoryTx(height uint64, txHashes []common.Hash) error {
-	keys := []string{}
-	for _, hashes := range txHashes {
-		keys = append(keys, hashes.Hex())
-	}
-
-	_, err := c.client.Do("SADD", fmt.Sprintf("history.txs.%d", height), keys)
 	return err
 }

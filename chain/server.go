@@ -21,18 +21,23 @@ func New(port string, dbFactory database.Factory) error {
 		return err
 	}
 
-	log.Infof("The chain server listens on port %s", port)
-	types.RegisterChainServer(s, &server{
-		blockDB: dbFactory.BlockDB(),
-	})
-	if _, err := service.New(dbFactory); err != nil {
+	svc, err := service.New(dbFactory)
+	if err != nil {
 		return err
 	}
+
+	types.RegisterChainServer(s, &server{
+		blockDB: dbFactory.BlockDB(),
+		svc:     svc,
+	})
+
+	log.Infof("The chain server listens on port %s", port)
 	return s.Serve(lis)
 }
 
 type server struct {
 	blockDB blockdb.Interface
+	svc     service.Interface
 }
 
 func (s *server) NewBlock(ctx context.Context, req *types.NewBlockReq) (*types.NewBlockRes, error) {
@@ -43,4 +48,13 @@ func (s *server) NewBlock(ctx context.Context, req *types.NewBlockReq) (*types.N
 	}
 
 	return &types.NewBlockRes{Height: block.GetHeader().GetHeight()}, nil
+}
+
+func (s *server) LatestHeight(ctx context.Context, req *types.LatestHeightReq) (*types.LatestHeightRes, error) {
+	height, err := s.svc.GetLatestHeight(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.LatestHeightRes{Height: height}, nil
 }

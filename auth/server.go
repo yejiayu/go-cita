@@ -19,7 +19,6 @@ import (
 	"context"
 	"net"
 
-	"github.com/ethereum/go-ethereum/common"
 	"google.golang.org/grpc"
 
 	"github.com/yejiayu/go-cita/auth/service"
@@ -28,9 +27,9 @@ import (
 	"github.com/yejiayu/go-cita/types"
 )
 
-func New(port string, dbFactory database.Factory) error {
+func New(port, redisURL string, dbFactory database.Factory) error {
 	s := grpc.NewServer()
-	svc, err := service.New(dbFactory)
+	svc, err := service.New(redisURL, dbFactory)
 	if err != nil {
 		return err
 	}
@@ -55,7 +54,7 @@ func (s *server) SendTransaction(ctx context.Context, req *types.SendTransaction
 	if err != nil {
 		return nil, err
 	}
-	log.Info(common.ToHex(hash))
+
 	return &types.SendTransactionRes{
 		TxHash: hash,
 	}, nil

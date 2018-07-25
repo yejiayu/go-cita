@@ -19,13 +19,18 @@ import (
 	"flag"
 
 	"github.com/caarlos0/env"
+
 	"github.com/yejiayu/go-cita/api"
 	"github.com/yejiayu/go-cita/log"
+	"github.com/yejiayu/go-cita/tools/tracing"
 )
 
 type config struct {
-	Port    string `env:"PORT" envDefault:"8000"`
-	AuthURL string `env:"AUTH_URL" envDefault:"127.0.0.1:8001"`
+	Port string `env:"PORT" envDefault:"8000"`
+
+	AuthURL    string `env:"AUTH_URL" envDefault:"127.0.0.1:8001"`
+	ChainURL   string `env:"CHAIN_URL" envDefault:"127.0.0.1:8003"`
+	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
 }
 
 func main() {
@@ -38,8 +43,14 @@ func main() {
 	}
 
 	log.Infof("api config %+v", cfg)
+	otClose, err := tracing.Configure("cita-api", cfg.TracingURL)
+	if err != nil {
+		log.Error(err)
+	} else {
+		defer otClose.Close()
+	}
 
-	if err := api.New(cfg.Port, cfg.AuthURL); err != nil {
+	if err := api.New(cfg.Port, cfg.AuthURL, cfg.ChainURL); err != nil {
 		log.Fatal(err)
 	}
 }

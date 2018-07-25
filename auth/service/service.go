@@ -23,6 +23,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/golang/protobuf/proto"
 
 	"github.com/yejiayu/go-cita/database"
@@ -53,8 +54,8 @@ type service struct {
 	blockDB blockdb.Interface
 }
 
-func New(dbFactory database.Factory) (Interface, error) {
-	cache, err := newCache()
+func New(redisURL string, dbFactory database.Factory) (Interface, error) {
+	cache, err := newCache(redisURL)
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +84,12 @@ func (s *service) Auth(ctx context.Context, untx *types.UnverifiedTransaction) (
 		return nil, err
 	}
 
-	txHash := common.BytesToHash(data)
+	h := sha3.New256()
+	h.Write(data)
+	txHash := common.BytesToHash(h.Sum(nil))
+
 	log.Infof("tx hash is", txHash.String())
-	pk, err := s.cache.getPublicKey(txHash)
+	pk, err := s.cache.getPublicKey(ctx, txHash)
 	if err != nil {
 		log.Error(err)
 	}
@@ -95,7 +99,7 @@ func (s *service) Auth(ctx context.Context, untx *types.UnverifiedTransaction) (
 			return nil, err
 		}
 
-		s.cache.setPublicKey(txHash, pk)
+		s.cache.setPublicKey(ctx, txHash, pk)
 	}
 
 	//TODO: black verify
@@ -134,7 +138,6 @@ func (s *service) PackTransactions(ctx context.Context, height uint64) ([][]byte
 }
 
 func (s *service) checkTxParams(ctx context.Context, tx *types.Transaction, signer *ecdsa.PublicKey, txHash common.Hash) error {
-	log.Infof("tx chain id %d, service chain id %d", tx.ChainId, s.chainID)
 	if tx.ChainId != s.chainID {
 		return errors.New("bad chain id")
 	}

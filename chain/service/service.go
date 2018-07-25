@@ -10,6 +10,7 @@ import (
 )
 
 type Interface interface {
+	GetLatestHeight(ctx context.Context) (uint64, error)
 }
 
 func New(dbFactory database.Factory) (Interface, error) {
@@ -53,4 +54,13 @@ func (s *service) init() error {
 	})
 
 	// return nil
+}
+
+func (s *service) GetLatestHeight(ctx context.Context) (uint64, error) {
+	h, err := s.blockDB.GetHeaderByLatest(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return h.GetHeight(), nil
 }
