@@ -21,8 +21,8 @@ import (
 	"github.com/caarlos0/env"
 
 	"github.com/yejiayu/go-cita/api"
-	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/tools/tracing"
+	"github.com/yejiayu/go-cita/log"
 )
 
 type config struct {

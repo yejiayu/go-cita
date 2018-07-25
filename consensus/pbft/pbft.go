@@ -9,10 +9,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/opentracing/opentracing-go"
 
+	"github.com/yejiayu/go-cita/common/merkle"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
 	"github.com/yejiayu/go-cita/log"
-	"github.com/yejiayu/go-cita/merkle"
 	"github.com/yejiayu/go-cita/types"
 )
 

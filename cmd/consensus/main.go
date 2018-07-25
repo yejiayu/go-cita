@@ -5,10 +5,10 @@ import (
 
 	"github.com/caarlos0/env"
 
+	"github.com/yejiayu/go-cita/tools/tracing"
 	"github.com/yejiayu/go-cita/consensus"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/log"
-	"github.com/yejiayu/go-cita/tools/tracing"
 )
 
 type config struct {
