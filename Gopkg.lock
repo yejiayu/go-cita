@@ -357,7 +357,9 @@
     "thrift-gen/jaeger",
     "thrift-gen/sampling",
     "thrift-gen/zipkincore",
-    "utils"
+    "transport/zipkin",
+    "utils",
+    "zipkin"
   ]
   revision = "b043381d944715b469fd6b37addfd30145ca1758"
   version = "v2.14.0"
@@ -367,6 +369,31 @@
   packages = ["metrics"]
   revision = "ed3a127ec5fef7ae9ea95b01b542c47fbd999ce5"
   version = "v1.5.0"
+
+[[projects]]
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  revision = "1ea20fb1cbb1cc08cbd0d913a96dead89aa18289"
+  version = "v1.3.2"
+
+[[projects]]
+  name = "go.uber.org/multierr"
+  packages = ["."]
+  revision = "3c4937480c32f4c13a875a1829af76c98ca3d40a"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "go.uber.org/zap"
+  packages = [
+    ".",
+    "buffer",
+    "internal/bufferpool",
+    "internal/color",
+    "internal/exit",
+    "zapcore"
+  ]
+  revision = "4d45f9617f7d90f7a663ff21c7a4321dbe78098b"
+  version = "v1.9.0"
 
 [[projects]]
   branch = "master"
@@ -472,6 +499,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "32ecbda36ba78dca76e12b1de4d0c3e48be01f425dfc5fb31e49e0c7ef37a155"
+  inputs-digest = "947f3a77367e8f915d73a9a21691d29c1342def8d5a832e4cb21cd577c2aa539"
   solver-name = "gps-cdcl"
   solver-version = 1
