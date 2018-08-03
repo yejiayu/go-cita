@@ -19,10 +19,11 @@ func TestFileWal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := wal.Load(context.Background(), LogTypeVote)
+	logType, data, err := wal.Load(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	t.Logf("%d", logType)
 	t.Log(string(data))
 }

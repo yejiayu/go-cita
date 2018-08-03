@@ -40,5 +40,5 @@ func (l LogType) String() string {
 type Interface interface {
 	SetHeight(ctx context.Context, height uint64) error
 	Save(ctx context.Context, logType LogType, data []byte) error
-	Load(ctx context.Context, logType LogType) ([]byte, error)
+	Load(ctx context.Context) (LogType, []byte, error)
 }
