@@ -2,6 +2,11 @@ package wal
 
 import (
 	"context"
+	"errors"
+)
+
+var (
+	ErrNotExists = errors.New("WAL not exists")
 )
 
 type LogType uint8
@@ -41,4 +46,11 @@ type Interface interface {
 	SetHeight(ctx context.Context, height uint64) error
 	Save(ctx context.Context, logType LogType, data []byte) error
 	Load(ctx context.Context) (LogType, []byte, error)
+}
+
+func IsNotExists(err error) bool {
+	if err == nil {
+		return false
+	}
+	return err.Error() == "WAL not exists"
 }

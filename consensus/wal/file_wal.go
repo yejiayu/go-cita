@@ -11,7 +11,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 )
 
-type FileWAL struct {
+type fileWAL struct {
 	mu sync.RWMutex
 
 	height uint64
@@ -25,10 +25,10 @@ func NewFileWAL(path string) (Interface, error) {
 		}
 	}
 
-	return &FileWAL{root: path}, nil
+	return &fileWAL{root: path}, nil
 }
 
-func (f *FileWAL) SetHeight(ctx context.Context, height uint64) error {
+func (f *fileWAL) SetHeight(ctx context.Context, height uint64) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "wal-height")
 	span.SetTag("height", height)
 	defer span.Finish()
@@ -40,7 +40,7 @@ func (f *FileWAL) SetHeight(ctx context.Context, height uint64) error {
 	return nil
 }
 
-func (f *FileWAL) Save(ctx context.Context, logType LogType, data []byte) error {
+func (f *fileWAL) Save(ctx context.Context, logType LogType, data []byte) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "wal-save")
 	span.SetTag("log_type", logType.String())
 	defer span.Finish()
@@ -61,12 +61,15 @@ func (f *FileWAL) Save(ctx context.Context, logType LogType, data []byte) error 
 	return err
 }
 
-func (f *FileWAL) Load(ctx context.Context) (LogType, []byte, error) {
+func (f *fileWAL) Load(ctx context.Context) (LogType, []byte, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "wal-load")
 	defer span.Finish()
 
 	file, err := os.Open(f.fileName())
 	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil, ErrNotExists
+		}
 		return 0, nil, err
 	}
 	defer file.Close()
@@ -81,7 +84,7 @@ func (f *FileWAL) Load(ctx context.Context) (LogType, []byte, error) {
 	return logType, msg, nil
 }
 
-func (f *FileWAL) fileName() string {
+func (f *fileWAL) fileName() string {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return path.Join(f.root, fmt.Sprintf("%d.log", f.height))
