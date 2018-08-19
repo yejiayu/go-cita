@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+import "chain.proto";
+import "common.proto";
+
+message Proposal {
+  Block block = 1;
+  bool islock = 2;
+  uint64 lock_round = 3;
+  repeated Vote lock_votes = 4;
+  uint64 round = 5;
+  uint64 height = 6;
+}
+
+message SetProposalReq {
+  Proposal proposal = 1;
+  bytes signature = 2;
+}
+
+enum VoteType {
+  Prevote = 0;
+  precommit = 1;
+}
+
+message Vote {
+  uint64 height = 1;
+  uint64 round = 2;
+  VoteType voteType = 3;
+  bytes address = 4;
+  bytes hash = 5;
+}
+
+message AddVoteReq {
+  Vote vote = 1;
+  bytes signature = 2;
+}
+
+service Consensus {
+  rpc SetProposal(SetProposalReq) returns (Empty) {}
+  rpc AddVote(AddVoteReq) returns (Empty) {}
+}
