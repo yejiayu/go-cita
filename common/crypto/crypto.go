@@ -63,3 +63,7 @@ func PubkeyToAddress(p ecdsa.PublicKey) hash.Address {
 	address := crypto.PubkeyToAddress(p)
 	return hash.Address(address)
 }
+
+func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
+	return crypto.FromECDSAPub(pub)
+}
