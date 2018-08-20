@@ -74,7 +74,17 @@ message NodeListRes {
   repeated bytes nodes = 3;
 }
 
+message GetBlockHeaderReq {
+  uint64 height = 1;
+}
+
+message GetBlockHeaderRes {
+  BlockHeader header = 1;
+}
+
 service Chain {
   rpc NewBlock (NewBlockReq) returns (NewBlockRes) {}
   rpc NodeList(NodeListReq) returns (NodeListRes) {}
+
+  rpc GetBlockHeader(GetBlockHeaderReq) returns (GetBlockHeaderRes) {}
 }
