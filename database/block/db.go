@@ -22,7 +22,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/yejiayu/go-cita/database/raw"
-	"github.com/yejiayu/go-cita/types"
+	"github.com/yejiayu/go-cita/pb"
 )
 
 var (
@@ -32,11 +32,11 @@ var (
 )
 
 type Interface interface {
-	GetHeaderByHeight(ctx context.Context, height uint64) (*types.BlockHeader, error)
-	GetBodyByHeight(ctx context.Context, height uint64) (*types.BlockBody, error)
-	GetHeaderByLatest(ctx context.Context) (*types.BlockHeader, error)
+	GetHeaderByHeight(ctx context.Context, height uint64) (*pb.BlockHeader, error)
+	GetBodyByHeight(ctx context.Context, height uint64) (*pb.BlockBody, error)
+	GetHeaderByLatest(ctx context.Context) (*pb.BlockHeader, error)
 
-	AddBlock(ctx context.Context, b *types.Block) error
+	AddBlock(ctx context.Context, b *pb.Block) error
 }
 
 func New(raw raw.Interface) Interface {
@@ -47,13 +47,13 @@ type blockDB struct {
 	raw raw.Interface
 }
 
-func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*types.BlockHeader, error) {
+func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*pb.BlockHeader, error) {
 	data, err := db.raw.Get(ctx, blockHeaderTable, uint64ToBytes(height))
 	if err != nil {
 		return nil, err
 	}
 
-	var header types.BlockHeader
+	var header pb.BlockHeader
 	if err := proto.Unmarshal(data, &header); err != nil {
 		return nil, err
 	}
@@ -61,13 +61,13 @@ func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*types
 	return &header, nil
 }
 
-func (db *blockDB) GetBodyByHeight(ctx context.Context, height uint64) (*types.BlockBody, error) {
+func (db *blockDB) GetBodyByHeight(ctx context.Context, height uint64) (*pb.BlockBody, error) {
 	data, err := db.raw.Get(ctx, blockBodyTable, uint64ToBytes(height))
 	if err != nil {
 		return nil, err
 	}
 
-	var body types.BlockBody
+	var body pb.BlockBody
 	if err := proto.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (db *blockDB) GetBodyByHeight(ctx context.Context, height uint64) (*types.B
 	return &body, nil
 }
 
-func (db *blockDB) GetHeaderByLatest(ctx context.Context) (*types.BlockHeader, error) {
+func (db *blockDB) GetHeaderByLatest(ctx context.Context) (*pb.BlockHeader, error) {
 	height, err := db.getLatest(ctx)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (db *blockDB) GetHeaderByLatest(ctx context.Context) (*types.BlockHeader, e
 	return db.GetHeaderByHeight(ctx, height)
 }
 
-func (db *blockDB) AddBlock(ctx context.Context, b *types.Block) error {
+func (db *blockDB) AddBlock(ctx context.Context, b *pb.Block) error {
 	header := b.GetHeader()
 	hData, err := proto.Marshal(header)
 	if err != nil {
