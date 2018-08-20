@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/yejiayu/go-cita/common/hash"
+	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 )
 
@@ -37,7 +38,14 @@ func (vs *VoteSet) AddVote(vote *pb.Vote, signature []byte) bool {
 
 	address := hash.BytesToAddress(vote.GetAddress())
 	blockHash := hash.BytesToHash(vote.GetHash())
-	if !vs.valSet.GetByAddress(address).VerifySignature(blockHash, signature) {
+
+	voteHash, err := hash.ProtoToSha3(vote)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	if !vs.valSet.GetByAddress(address).VerifySignature(voteHash, signature) {
 		return false
 	}
 

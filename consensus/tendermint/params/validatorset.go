@@ -18,6 +18,7 @@ package params
 import (
 	"sort"
 
+	"github.com/yejiayu/go-cita/common/crypto"
 	"github.com/yejiayu/go-cita/common/hash"
 )
 
@@ -39,21 +40,20 @@ type ValidatorSet struct {
 	totalVotingPower int64
 }
 
-func NewValidatorSet(vals []*Validator) *ValidatorSet {
-	validators := make([]*Validator, len(vals))
-	for i, val := range vals {
-		validators[i] = val.Copy()
-	}
-	sort.Sort(ValidatorsSort(validators))
-	vs := &ValidatorSet{
-		Validators: validators,
-	}
-
-	if len(vs.Validators) > 0 {
-		// vs.IncrementAccum(1)
+func NewValidatorSet(pubkList [][]byte) (*ValidatorSet, error) {
+	vals := make([]*Validator, len(pubkList))
+	for i, pubk := range pubkList {
+		pubkey, err := crypto.DecompressPubkey(pubk)
+		if err != nil {
+			return nil, err
+		}
+		vals[i] = NewValidator(uint32(i), pubkey)
 	}
 
-	return vs
+	sort.Sort(ValidatorsSort(vals))
+	return &ValidatorSet{
+		Validators: vals,
+	}, nil
 }
 
 // GetProposer returns the current proposer. If the validator set is empty, nil

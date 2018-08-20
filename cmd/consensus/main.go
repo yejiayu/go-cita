@@ -18,9 +18,9 @@ package main
 import (
 	"github.com/yejiayu/go-cita/common/tracing"
 	cfg "github.com/yejiayu/go-cita/config/consensus"
-	"github.com/yejiayu/go-cita/consensus"
-	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/log"
+
+	"github.com/yejiayu/go-cita/consensus"
 )
 
 func main() {
@@ -31,17 +31,10 @@ func main() {
 		defer otClose.Close()
 	}
 
-	dbFactory, err := database.NewFactory(cfg.GetDbURL())
+	server, err := consensus.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	server, err := consensus.New(dbFactory)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := server.Run(); err != nil {
-		log.Fatal(err)
-	}
+	server.Run()
 }

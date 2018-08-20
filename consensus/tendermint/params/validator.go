@@ -50,5 +50,5 @@ func (v *Validator) Copy() *Validator {
 }
 
 func (v *Validator) VerifySignature(hash hash.Hash, signature []byte) bool {
-	return crypto.VerifySignature(v.PubKey, hash, signature)
+	return crypto.VerifySignature(v.PubKey, hash, signature[:len(signature)-1])
 }

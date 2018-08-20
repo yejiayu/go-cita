@@ -34,11 +34,15 @@ func TestRoundStep(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	val1 := params.NewValidator(1, &priv1.PublicKey)
-	val2 := params.NewValidator(2, &priv2.PublicKey)
-	val3 := params.NewValidator(3, &priv3.PublicKey)
+	pub1 := crypto.FromECDSAPub(&priv1.PublicKey)
+	pub2 := crypto.FromECDSAPub(&priv2.PublicKey)
+	pub3 := crypto.FromECDSAPub(&priv3.PublicKey)
 
-	valSet := params.NewValidatorSet([]*params.Validator{val1, val2, val3})
+	pubkList := [][]byte{pub1, pub2, pub3}
+	valSet, err := params.NewValidatorSet(pubkList)
+	if err != nil {
+		t.Fatal(err)
+	}
 	signer := params.NewSinger(priv1)
 	signer2 = params.NewSinger(priv2)
 	signer3 = params.NewSinger(priv3)
@@ -50,8 +54,8 @@ func TestRoundStep(t *testing.T) {
 	}
 }
 
-func (mock *mockExtension) ProposalBlock(height uint64) (*pb.Block, error) {
-	log.Infof("proposal block height %d", height)
+func (mock *mockExtension) ProposalBlock(height uint64, signer *params.Singer) (*pb.Block, error) {
+	log.Infof("ProposalBlock height %d", height)
 	return &pb.Block{
 		Header: &pb.BlockHeader{
 			Height: height,
@@ -61,22 +65,26 @@ func (mock *mockExtension) ProposalBlock(height uint64) (*pb.Block, error) {
 }
 
 func (mock *mockExtension) ValidateProposalBlock(proposal *pb.Proposal) error {
-	log.Infof("proposal height %d", proposal.GetHeight())
+	log.Infof("ValidateProposalBlock proposal height %d", proposal.GetHeight())
 	return nil
 }
 
-func (mock *mockExtension) BroadcastProposal(proposal *pb.Proposal) error {
+func (mock *mockExtension) BroadcastProposal(proposal *pb.Proposal, signature []byte) error {
 	log.Infof("BroadcastProposal height=%d round=%d", proposal.GetHeight(), proposal.GetRound())
 
 	vote2, sig2 := buildVote(proposal.GetHeight(), proposal.GetRound(), pb.VoteType_Prevote, proposal.GetBlock(), signer2)
 	vote3, sig3 := buildVote(proposal.GetHeight(), proposal.GetRound(), pb.VoteType_Prevote, proposal.GetBlock(), signer3)
 	rs.SetVote(vote2, sig2)
 	rs.SetVote(vote3, sig3)
+
+	vote2, sig2 = buildVote(proposal.GetHeight(), proposal.GetRound(), pb.VoteType_precommit, proposal.GetBlock(), signer2)
+	vote3, sig3 = buildVote(proposal.GetHeight(), proposal.GetRound(), pb.VoteType_precommit, proposal.GetBlock(), signer3)
+	rs.SetVote(vote2, sig2)
+	rs.SetVote(vote3, sig3)
 	return nil
 }
 
-func (mock *mockExtension) BroadcastVote(vote *pb.Vote) error {
-	log.Infof("BroadcastVote, height=%d round=%d", vote.GetHeight(), vote.GetRound())
+func (mock *mockExtension) BroadcastVote(vote *pb.Vote, signature []byte) error {
 	return nil
 }
 
@@ -88,6 +96,10 @@ func (mock *mockExtension) Commit(block *pb.Block) error {
 func (mock *mockExtension) WAL(data []byte) error {
 	log.Infof("wal")
 	return nil
+}
+
+func (mock *mockExtension) GetValidatorSet(height uint64) (*params.ValidatorSet, error) {
+	return nil, nil
 }
 
 func buildVote(height, round uint64, vt pb.VoteType, block *pb.Block, signer *params.Singer) (*pb.Vote, []byte) {

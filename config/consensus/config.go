@@ -12,14 +12,16 @@ import (
 var cfg *config
 
 type config struct {
-	DbURL []string `env:"DB_URL" envSeparator:"," envDefault:"47.75.129.215:2379,47.75.129.215:2380,47.75.129.215:2381"`
-
 	PrivKeyHex string `env:"PRIVATE_KEY_HEX"`
+	QuotaLimit int    `env:"QUOTA_LIMIT" envDefault:"99999"`
+	TxCount    int    `env:"TX_COUNT" envDefault:"20000"`
 
 	Port string `env:"PORT" envDefault:"8004"`
 
 	AuthURL    string `env:"AUTH_URL" envDefault:"127.0.0.1:8001"`
 	ChainURL   string `env:"CHAIN_URL" envDefault:"127.0.0.1:8003"`
+	NetworkURL string `env:"NETWORK_URL" envDefault:"127.0.0.1:7001"`
+
 	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
 }
 
@@ -32,8 +34,12 @@ func init() {
 	log.Infof("consensus config %+v", cfg)
 }
 
-func GetDbURL() []string {
-	return cfg.DbURL
+func GetQuotaLimit() uint64 {
+	return uint64(cfg.QuotaLimit)
+}
+
+func GetTxCount() uint32 {
+	return uint32(cfg.TxCount)
 }
 
 func GetPort() string {
@@ -46,6 +52,10 @@ func GetAuthURL() string {
 
 func GetChainURL() string {
 	return cfg.ChainURL
+}
+
+func GetNetworkURL() string {
+	return cfg.NetworkURL
 }
 
 func GetTracingURL() string {

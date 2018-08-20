@@ -21,24 +21,26 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/yejiayu/go-cita/common/hash"
+	"github.com/yejiayu/go-cita/clients"
 	cfg "github.com/yejiayu/go-cita/config/consensus"
-	"github.com/yejiayu/go-cita/consensus/tendermint"
-	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
+
+	"github.com/yejiayu/go-cita/consensus/tendermint"
 )
 
 type Server interface {
-	Run() error
+	Run()
 }
 
-func New(dbFactory database.Factory) (Server, error) {
-	// err = tendermint.New(dbFactory, authClient, chainClient).Run()
-
+func New() (Server, error) {
 	return &server{
 		grpcS: grpc.NewServer(),
-		// tendermint: tendermint.New(, chainClient types.ChainClient, privKey *ecdsa.PrivateKey)
+		tendermint: tendermint.New(
+			clients.NewAuthClient(cfg.GetAuthURL()),
+			clients.NewChainClient(cfg.GetChainURL()),
+			clients.NewNetworkClient(cfg.GetNetworkURL()),
+		),
 	}, nil
 }
 
@@ -47,28 +49,31 @@ type server struct {
 	tendermint tendermint.Interface
 }
 
-func (s *server) Run() error {
+func (s *server) Run() {
 	port := cfg.GetPort()
 	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
 	log.Infof("The consensus server listens on port %s", port)
-	pb.RegisterConsensusServer(s, &server{})
-	return s.grpcS.Serve(lis)
+	pb.RegisterConsensusServer(s.grpcS, &server{})
+
+	if err := s.grpcS.Serve(lis); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func (s *server) SignedProposal(ctx context.Context, in *pb.SignedProposalReq) (*pb.Empty, error) {
-	if err := s.tendermint.SignedProposal(ctx, in.GetProposal(), in.GetSignature()); err != nil {
+func (s *server) SetProposal(ctx context.Context, in *pb.SetProposalReq) (*pb.Empty, error) {
+	if err := s.tendermint.SetProposal(ctx, in.GetProposal(), in.GetSignature()); err != nil {
 		return nil, err
 	}
 
 	return &pb.Empty{}, nil
 }
 
-func (s *server) VotingBlock(ctx context.Context, in *pb.VotingBlockReq) (*pb.Empty, error) {
-	if err := s.tendermint.VotingBlock(ctx, hash.BytesToHash(in.GetHash()), in.GetSignature()); err != nil {
+func (s *server) AddVote(ctx context.Context, in *pb.AddVoteReq) (*pb.Empty, error) {
+	if err := s.tendermint.SetVote(ctx, in.GetVote(), in.GetSignature()); err != nil {
 		return nil, err
 	}
 	return &pb.Empty{}, nil

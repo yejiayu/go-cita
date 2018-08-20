@@ -16,6 +16,7 @@
 package tendermint
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -26,14 +27,23 @@ import (
 	"github.com/yejiayu/go-cita/consensus/tendermint/params"
 )
 
+var (
+	ErrInvalidProposalSignature = errors.New("Error invalid proposal signature")
+	ErrInvalidProposalPOLRound  = errors.New("Error invalid proposal POL round")
+	ErrAddingVote               = errors.New("Error adding vote")
+	ErrVoteHeightMismatch       = errors.New("Error vote height mismatch")
+)
+
 type Extension interface {
-	ProposalBlock(height uint64) (*pb.Block, error)
+	ProposalBlock(height uint64, signer *params.Singer) (*pb.Block, error)
 	ValidateProposalBlock(proposal *pb.Proposal) error
 
-	BroadcastProposal(proposal *pb.Proposal) error
-	BroadcastVote(vote *pb.Vote) error
+	BroadcastProposal(proposal *pb.Proposal, signature []byte) error
+	BroadcastVote(vote *pb.Vote, signature []byte) error
 
 	Commit(block *pb.Block) error
+
+	GetValidatorSet(height uint64) (*params.ValidatorSet, error)
 
 	WAL(data []byte) error
 }
@@ -107,9 +117,9 @@ type roundStep struct {
 	Proposal  *pb.Proposal `json:"proposal"`
 	Signature []byte       `json:"signature"`
 
-	LockedRound   uint64        `json:"locked_round"`
-	LockedBlock   *pb.Block     `json:"locked_block"`
-	HeightVoteSet HeightVoteSet `json:"height_vote_set"`
+	LockedRound   uint64         `json:"locked_round"`
+	LockedBlock   *pb.Block      `json:"locked_block"`
+	HeightVoteSet *HeightVoteSet `json:"height_vote_set"`
 }
 
 func NewRoundStep(height uint64, valSet *params.ValidatorSet, singer *params.Singer, extension Extension) RoundStep {
@@ -122,6 +132,8 @@ func NewRoundStep(height uint64, valSet *params.ValidatorSet, singer *params.Sin
 
 		Validators: valSet,
 		Singer:     singer,
+
+		HeightVoteSet: NewHeightVoteSet(height, 0, valSet),
 	}
 
 	rs.ticker.Start()
@@ -148,7 +160,7 @@ func (rs *roundStep) SetProposal(proposal *pb.Proposal, signature []byte) error 
 		return err
 	}
 
-	log.Infof("proposal height %d, proposal round %d", height, round)
+	log.Infof("SetProposal %d, proposal round %d", height, round)
 	if !rs.Validators.GetProposer(height, round).VerifySignature(blockHash, signature) {
 		return ErrInvalidProposalSignature
 	}
@@ -168,6 +180,8 @@ func (rs *roundStep) SetVote(vote *pb.Vote, signature []byte) error {
 	if !rs.HeightVoteSet.AddVote(vote, signature) {
 		return nil
 	}
+
+	log.Infof("vote added, address=%s, height=%d, round=%d, vote_type=%s", hash.ToHex(vote.GetAddress()), vote.GetHeight(), vote.GetRound(), vote.GetVoteType())
 
 	switch vote.GetVoteType() {
 	case pb.VoteType_Prevote:
@@ -198,6 +212,8 @@ func (rs *roundStep) updateStep(step RoundStepType) {
 	rs.RoundStep = step
 
 	switch step {
+	case RoundStepNewHeight:
+		go rs.enterNewHeight()
 	case RoundStepNewRound:
 		go rs.enterNewRound()
 	case RoundStepPropose:
@@ -218,7 +234,7 @@ func (rs *roundStep) timeout() {
 		round := rs.Round
 		rs.mu.Unlock()
 
-		if rs.Height != height || rs.Round != round {
+		if ti.Height != height || ti.Round != round {
 			continue
 		}
 
@@ -233,12 +249,40 @@ func (rs *roundStep) timeout() {
 	}
 }
 
+func (rs *roundStep) enterNewHeight() {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	log.Infof("enterNewHeight, height=%d, round=%d, step=%s", rs.Height, rs.Round, rs.RoundStep.String())
+
+	t := (time.Second * 3) - rs.CommitTime.Sub(rs.StartTime)
+	if t > 0 {
+		log.Infof("enterNewHeight sleep %s", t.String())
+		time.Sleep(t)
+	}
+
+	rs.StartTime = time.Now()
+	rs.Height++
+	rs.Round = 0
+	rs.Proposal = nil
+	rs.LockedBlock = nil
+	rs.LockedRound = 0
+
+	// TODO: update validators
+	rs.HeightVoteSet.Reset(rs.Height, rs.Validators)
+
+	rs.updateStep(RoundStepNewRound)
+}
+
 func (rs *roundStep) enterNewRound() {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
+	log.Infof("enterNewRound, height=%d, round=%d, step=%s", rs.Height, rs.Round, rs.RoundStep.String())
 
-	rs.Proposal = nil
-	rs.Round = rs.Round + 1
+	if rs.Round != 0 {
+		rs.Proposal = nil
+	}
+
+	rs.HeightVoteSet.SetRound(rs.Round + 1)
 
 	rs.updateStep(RoundStepPropose)
 }
@@ -246,16 +290,16 @@ func (rs *roundStep) enterNewRound() {
 func (rs *roundStep) enterPropose() {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
+	log.Infof("enterPropose, height=%d, round=%d, step=%s", rs.Height, rs.Round, rs.RoundStep.String())
 
 	proposer := rs.Validators.GetProposer(rs.Height, rs.Round)
 	if rs.Singer.Address() == proposer.Address {
 		log.Infof("is proposer, height %d、round %d", rs.Height, rs.Round)
-		block, err := rs.extension.ProposalBlock(rs.Height)
+		block, err := rs.extension.ProposalBlock(rs.Height, rs.Singer)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		log.Infof("enter propose block %+v", block)
 		proposal := &pb.Proposal{
 			Block:     block,
 			Islock:    rs.LockedBlock != nil,
@@ -269,10 +313,12 @@ func (rs *roundStep) enterPropose() {
 			log.Fatal(err)
 		}
 
-		go rs.extension.BroadcastProposal(proposal)
+		go rs.extension.BroadcastProposal(proposal, signature)
 		if err := rs.SetProposal(proposal, signature); err != nil {
 			log.Fatal(err)
 		}
+
+		return
 	}
 
 	rs.scheduleTimeout(rs.Height, rs.Round, RoundStepPropose, time.Second)
@@ -294,6 +340,7 @@ func (rs *roundStep) enterPropose() {
 func (rs *roundStep) enterPrevote() {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
+	log.Infof("enterPrevote, height=%d, round=%d, step=%s", rs.Height, rs.Round, rs.RoundStep.String())
 
 	defer func() {
 		rs.updateStep(RoundStepPrevoteWait)
@@ -337,6 +384,7 @@ func (rs *roundStep) enterPrevote() {
 func (rs *roundStep) enterPrecommit() {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
+	log.Infof("enterPrecommit, height=%d, round=%d, step=%s", rs.Height, rs.Round, rs.RoundStep.String())
 
 	defer func() {
 		rs.updateStep(RoundStepPrecommitWait)
@@ -405,20 +453,24 @@ func (rs *roundStep) enterPrecommit() {
 func (rs *roundStep) enterCommit() {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
+	log.Infof("enterCommit, height=%d, round=%d, step=%s", rs.Height, rs.Round, rs.RoundStep.String())
 
 	votes := rs.HeightVoteSet.Precommits(rs.Round)
 	if votes == nil {
+		rs.Round++
 		rs.updateStep(RoundStepNewRound)
 		return
 	}
 
 	blockHash, ok := votes.TwoThirdsMajority()
 	if !ok {
+		rs.Round++
 		rs.updateStep(RoundStepNewRound)
 		return
 	}
 
 	if hash.IsZeroHash(blockHash) {
+		rs.Round++
 		rs.updateStep(RoundStepNewRound)
 		return
 	}
@@ -429,6 +481,7 @@ func (rs *roundStep) enterCommit() {
 			log.Fatal(err)
 		}
 
+		rs.CommitTime = time.Now()
 		rs.updateStep(RoundStepNewHeight)
 		return
 	}
@@ -439,6 +492,7 @@ func (rs *roundStep) enterCommit() {
 			log.Fatal(err)
 		}
 
+		rs.CommitTime = time.Now()
 		rs.updateStep(RoundStepNewHeight)
 		return
 	}
@@ -470,6 +524,7 @@ func (rs *roundStep) addVoteByBlock(vt pb.VoteType, block *pb.Block) {
 		return
 	}
 
+	go rs.extension.BroadcastVote(vote, signature)
 	go rs.SetVote(vote, signature)
 }
 

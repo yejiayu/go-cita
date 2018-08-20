@@ -90,7 +90,6 @@ func (t *timeoutTicker) stopTimer() {
 // timers are interupted and replaced by new ticks from later steps
 // timeouts of 0 on the tickChan will be immediately relayed to the tockChan
 func (t *timeoutTicker) timeoutRoutine() {
-	log.Debug("Starting timeout routine")
 	var ti timeoutInfo
 	for {
 		select {

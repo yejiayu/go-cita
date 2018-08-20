@@ -95,3 +95,35 @@ func (hvs *HeightVoteSet) POLInfo() (uint64, hash.Hash, bool) {
 	}
 	return 0, hash.Hash{}, false
 }
+
+func (hvs *HeightVoteSet) SetRound(round uint64) {
+	hvs.mu.Lock()
+	defer hvs.mu.Unlock()
+
+	for r := hvs.round + 1; r <= round; r++ {
+		if _, ok := hvs.roundVoteSets[r]; ok {
+			continue
+		}
+
+		hvs.roundVoteSets[r] = &RoundVoteSet{
+			Prevotes:   params.NewVoteSet(hvs.height, r, hvs.valSet),
+			Precommits: params.NewVoteSet(hvs.height, r, hvs.valSet),
+		}
+	}
+
+	hvs.round = round
+}
+
+func (hvs *HeightVoteSet) Reset(height uint64, valSet *params.ValidatorSet) {
+	hvs.mu.Lock()
+	defer hvs.mu.Unlock()
+
+	hvs.height = height
+	hvs.round = 0
+	hvs.valSet = valSet
+	hvs.roundVoteSets = make(map[uint64]*RoundVoteSet)
+	hvs.roundVoteSets[hvs.round] = &RoundVoteSet{
+		Prevotes:   params.NewVoteSet(hvs.height, hvs.round, hvs.valSet),
+		Precommits: params.NewVoteSet(hvs.height, hvs.round, hvs.valSet),
+	}
+}
