@@ -1,50 +1,80 @@
+// Copyright (C) 2018 yejiayu
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package consensus
 
 import (
+	"context"
 	"net"
 
 	"google.golang.org/grpc"
 
 	"github.com/yejiayu/go-cita/clients"
-	"github.com/yejiayu/go-cita/consensus/pbft"
-	"github.com/yejiayu/go-cita/database"
-	blockdb "github.com/yejiayu/go-cita/database/block"
+	cfg "github.com/yejiayu/go-cita/config/consensus"
 	"github.com/yejiayu/go-cita/log"
+	"github.com/yejiayu/go-cita/pb"
+
+	"github.com/yejiayu/go-cita/consensus/tendermint"
 )
 
-func New(
-	port, authURL, chainURL string,
-	dbFactory database.Factory,
-) error {
-	cFactory := clients.New()
-	authClient, err := cFactory.Auth(authURL)
-	if err != nil {
-		return err
-	}
-	chainClient, err := cFactory.Chain(chainURL)
-	if err != nil {
-		return err
-	}
+type Server interface {
+	Run()
+}
 
-	go func() {
-		err = pbft.New(dbFactory, authClient, chainClient).Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-	s := grpc.NewServer()
-
-	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
-	if err != nil {
-		return err
-	}
-
-	log.Infof("The consensus server listens on port %s", port)
-	// types.RegisterConsensusServer(s, &server{})
-	grpc.Dial(authURL, grpc.WithInsecure())
-	return s.Serve(lis)
+func New() (Server, error) {
+	return &server{
+		grpcS: grpc.NewServer(),
+		tendermint: tendermint.New(
+			clients.NewAuthClient(cfg.GetAuthURL()),
+			clients.NewChainClient(cfg.GetChainURL()),
+			clients.NewNetworkClient(cfg.GetNetworkURL()),
+		),
+	}, nil
 }
 
 type server struct {
-	blockDB blockdb.Interface
+	grpcS      *grpc.Server
+	tendermint tendermint.Interface
+}
+
+func (s *server) Run() {
+	port := cfg.GetPort()
+	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Infof("The consensus server listens on port %s", port)
+	pb.RegisterConsensusServer(s.grpcS, &server{})
+
+	if err := s.grpcS.Serve(lis); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (s *server) SetProposal(ctx context.Context, in *pb.SetProposalReq) (*pb.Empty, error) {
+	if err := s.tendermint.SetProposal(ctx, in.GetProposal(), in.GetSignature()); err != nil {
+		return nil, err
+	}
+
+	return &pb.Empty{}, nil
+}
+
+func (s *server) AddVote(ctx context.Context, in *pb.AddVoteReq) (*pb.Empty, error) {
+	if err := s.tendermint.SetVote(ctx, in.GetVote(), in.GetSignature()); err != nil {
+		return nil, err
+	}
+	return &pb.Empty{}, nil
 }

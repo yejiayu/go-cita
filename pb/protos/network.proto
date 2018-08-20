@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "consensus.proto";
+import "common.proto";
+
+message BroadcastProposalReq {
+  Proposal proposal = 1;
+  bytes signature = 2;
+}
+
+message BroadcastVotelReq {
+  Vote vote = 1;
+  bytes signature = 2;
+}
+
+service Network {
+  rpc BroadcastProposal(BroadcastProposalReq) returns (Empty) {}
+  rpc BroadcastVote(BroadcastVotelReq) returns (Empty) {}
+}

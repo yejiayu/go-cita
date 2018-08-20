@@ -3,34 +3,33 @@ package clients
 import (
 	"google.golang.org/grpc"
 
-	"github.com/yejiayu/go-cita/types"
+	"github.com/yejiayu/go-cita/log"
+	"github.com/yejiayu/go-cita/pb"
 )
 
-type Factory interface {
-	Auth(url string) (types.AuthClient, error)
-	Chain(url string) (types.ChainClient, error)
-}
-
-func New() Factory {
-	return &factory{}
-}
-
-type factory struct{}
-
-func (f *factory) Auth(url string) (types.AuthClient, error) {
-	conn, err := grpc.Dial(url, grpc.WithInsecure())
+func NewAuthClient(url string) pb.AuthClient {
+	conn, err := grpc.Dial(url)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	return types.NewAuthClient(conn), nil
+	return pb.NewAuthClient(conn)
 }
 
-func (f *factory) Chain(url string) (types.ChainClient, error) {
-	conn, err := grpc.Dial(url, grpc.WithInsecure())
+func NewChainClient(url string) pb.ChainClient {
+	conn, err := grpc.Dial(url)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	return types.NewChainClient(conn), nil
+	return pb.NewChainClient(conn)
+}
+
+func NewNetworkClient(url string) pb.NetworkClient {
+	conn, err := grpc.Dial(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return pb.NewNetworkClient(conn)
 }

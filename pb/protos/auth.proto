@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "common.proto";
+
 enum Crypto {
   SECP = 0;
   SM2 = 1;
@@ -36,15 +38,23 @@ message SendTransactionRes {
   bytes tx_hash = 1;
 }
 
-message PackTransactionsReq {
-  uint64 height = 1;
+message VerifyTxHashesReq {
+  repeated bytes tx_hashes = 1;
 }
 
-message PackTransactionsRes {
+message GetTxFromPoolReq {
+  uint64 quota_limit = 1;
+  uint32 tx_count = 2;
+}
+
+message GetTxFromPoolRes {
   repeated bytes tx_hashes = 1;
+  uint64 quota_used = 2;
 }
 
 service Auth {
   rpc SendTransaction (SendTransactionReq) returns (SendTransactionRes) {}
-  rpc PackTransactions (PackTransactionsReq) returns (PackTransactionsRes) {}
+
+  rpc GetTxFromPool (GetTxFromPoolReq) returns (GetTxFromPoolRes) {}
+  rpc VerifyTxHashes (VerifyTxHashesReq) returns (Empty) {}
 }

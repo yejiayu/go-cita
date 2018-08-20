@@ -11,6 +11,12 @@ message Proof {
   ProofType type = 2;
 }
 
+message Block {
+  uint32 version = 1;
+  BlockHeader header = 2;
+  BlockBody body = 3;
+}
+
 message BlockHeader {
   bytes prevhash = 1;
   uint64 timestamp = 2;
@@ -46,12 +52,6 @@ message BlockBody {
   repeated bytes tx_hashes = 1;
 }
 
-message Block {
-  uint32 version = 1;
-  BlockHeader header = 2;
-  BlockBody body = 3;
-}
-
 message BlockWithProof {
   Block blk = 1;
   Proof proof = 2;
@@ -66,15 +66,25 @@ message NewBlockRes {
   uint64 height = 1;
 }
 
-message LatestHeightReq {
+message NodeListReq {
+  uint64 height = 1;
 }
 
-message LatestHeightRes {
+message NodeListRes {
+  repeated bytes nodes = 3;
+}
+
+message GetBlockHeaderReq {
   uint64 height = 1;
+}
+
+message GetBlockHeaderRes {
+  BlockHeader header = 1;
 }
 
 service Chain {
   rpc NewBlock (NewBlockReq) returns (NewBlockRes) {}
+  rpc NodeList(NodeListReq) returns (NodeListRes) {}
 
-  rpc LatestHeight (LatestHeightReq) returns (LatestHeightRes) {}
+  rpc GetBlockHeader(GetBlockHeaderReq) returns (GetBlockHeaderRes) {}
 }

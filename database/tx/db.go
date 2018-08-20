@@ -22,7 +22,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/yejiayu/go-cita/database/raw"
-	"github.com/yejiayu/go-cita/types"
+	"github.com/yejiayu/go-cita/pb"
 )
 
 var (
@@ -31,9 +31,9 @@ var (
 )
 
 type Interface interface {
-	AddPool(ctx context.Context, signedTx *types.SignedTransaction) error
+	AddPool(ctx context.Context, signedTx *pb.SignedTransaction) error
 
-	GetByHash(ctx context.Context, hash common.Hash) (*types.SignedTransaction, error)
+	GetByHash(ctx context.Context, hash common.Hash) (*pb.SignedTransaction, error)
 	GetTxhashesFromPool(ctx context.Context, limit int) ([][]byte, error)
 	Exists(ctx context.Context, hash common.Hash) (bool, error)
 
@@ -48,7 +48,7 @@ type txDB struct {
 	raw raw.Interface
 }
 
-func (db *txDB) AddPool(ctx context.Context, signedTx *types.SignedTransaction) error {
+func (db *txDB) AddPool(ctx context.Context, signedTx *pb.SignedTransaction) error {
 	data, err := proto.Marshal(signedTx)
 	if err != nil {
 		return err
@@ -61,13 +61,13 @@ func (db *txDB) AddPool(ctx context.Context, signedTx *types.SignedTransaction) 
 	return db.raw.Put(ctx, txPoolTable, signedTx.GetTxHash(), signedTx.GetTxHash())
 }
 
-func (db *txDB) GetByHash(ctx context.Context, hash common.Hash) (*types.SignedTransaction, error) {
+func (db *txDB) GetByHash(ctx context.Context, hash common.Hash) (*pb.SignedTransaction, error) {
 	data, err := db.raw.Get(ctx, txTable, hash.Bytes())
 	if err != nil {
 		return nil, err
 	}
 
-	var signedTx types.SignedTransaction
+	var signedTx pb.SignedTransaction
 	if err := proto.Unmarshal(data, &signedTx); err != nil {
 		return nil, err
 	}
