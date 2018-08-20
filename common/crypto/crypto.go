@@ -56,7 +56,7 @@ func DecompressPubkey(pubkey []byte) (*ecdsa.PublicKey, error) {
 // The signature should have the 64 byte [R || S] format.
 func VerifySignature(pubkey *ecdsa.PublicKey, hash hash.Hash, signature []byte) bool {
 	pubKeyBytes := crypto.CompressPubkey(pubkey)
-	return crypto.VerifySignature(pubKeyBytes, hash.Bytes(), signature[:len(signature)-1])
+	return crypto.VerifySignature(pubKeyBytes, hash.Bytes(), signature)
 }
 
 func PubkeyToAddress(p ecdsa.PublicKey) hash.Address {

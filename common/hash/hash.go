@@ -16,6 +16,10 @@ const (
 // Hash represents the 32 byte sha3-256 hash of arbitrary data.
 type Hash [HashLength]byte
 
+func ToHex(data []byte) string {
+	return common.ToHex(data)
+}
+
 func IsZeroHash(h Hash) bool {
 	return bytes.Equal(h.Bytes(), Hash{}.Bytes())
 }
