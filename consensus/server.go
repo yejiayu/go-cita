@@ -33,7 +33,7 @@ type Server interface {
 	Run()
 }
 
-func New() (Server, error) {
+func New() Server {
 	return &server{
 		grpcS: grpc.NewServer(),
 		tendermint: tendermint.New(
@@ -41,7 +41,7 @@ func New() (Server, error) {
 			clients.NewChainClient(cfg.GetChainURL()),
 			clients.NewNetworkClient(cfg.GetNetworkURL()),
 		),
-	}, nil
+	}
 }
 
 type server struct {
@@ -57,7 +57,7 @@ func (s *server) Run() {
 	}
 
 	log.Infof("The consensus server listens on port %s", port)
-	pb.RegisterConsensusServer(s.grpcS, &server{})
+	pb.RegisterConsensusServer(s.grpcS, s)
 
 	if err := s.grpcS.Serve(lis); err != nil {
 		log.Fatal(err)
