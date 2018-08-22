@@ -19,54 +19,99 @@ import (
 	"context"
 	"net"
 
+	"github.com/gomodule/redigo/redis"
 	"google.golang.org/grpc"
 
-	"github.com/yejiayu/go-cita/auth/service"
-	"github.com/yejiayu/go-cita/database"
+	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/log"
-	"github.com/yejiayu/go-cita/types"
+	"github.com/yejiayu/go-cita/pb"
+
+	"github.com/yejiayu/go-cita/auth/cache"
+	"github.com/yejiayu/go-cita/auth/pool"
+	"github.com/yejiayu/go-cita/auth/service"
+	cfg "github.com/yejiayu/go-cita/config/auth"
+	"github.com/yejiayu/go-cita/database"
 )
 
-func New(port, redisURL string, dbFactory database.Factory) error {
-	s := grpc.NewServer()
-	svc, err := service.New(redisURL, dbFactory)
+type Server interface {
+	Run()
+}
+
+func New(dbFactory database.Factory, networkClient pb.NetworkClient) Server {
+	conn, err := redis.DialURL("redis://" + cfg.GetRedisURL())
 	if err != nil {
-		return err
+		log.Panic(err)
 	}
 
-	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
-	if err != nil {
-		return err
-	}
+	pool := pool.NewNoop(dbFactory.TxDB(), conn, cfg.GetPoolCount())
+	cache := cache.New(conn)
+	svc := service.New(dbFactory, networkClient, cache, pool)
 
-	log.Infof("The auth server listens on port %s", port)
-	types.RegisterAuthServer(s, &server{svc: svc})
-	return s.Serve(lis)
+	return &server{
+		grpcS: grpc.NewServer(),
+		svc:   svc,
+	}
 }
 
 // AuthServer is the server API for Auth service.
 type server struct {
-	svc service.Interface
+	grpcS *grpc.Server
+	svc   service.Interface
 }
 
-func (s *server) SendTransaction(ctx context.Context, req *types.SendTransactionReq) (*types.SendTransactionRes, error) {
-	hash, err := s.svc.Auth(ctx, req.GetUntx())
+func (s *server) Run() {
+	port := cfg.GetPort()
+	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	log.Infof("The auth server listens on port %s", port)
+	pb.RegisterAuthServer(s.grpcS, s)
+
+	if err := s.grpcS.Serve(lis); err != nil {
+		log.Panic(err)
+	}
+}
+
+func (s *server) AddUnverifyTx(ctx context.Context, req *pb.AddUnverifyTxReq) (*pb.AddUnverifyTxRes, error) {
+	hash, err := s.svc.AddUnverifyTx(ctx, req.GetUntx())
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.SendTransactionRes{
-		TxHash: hash,
+	return &pb.AddUnverifyTxRes{
+		TxHash: hash.Bytes(),
 	}, nil
 }
 
-func (s *server) PackTransactions(ctx context.Context, req *types.PackTransactionsReq) (*types.PackTransactionsRes, error) {
-	hashes, err := s.svc.PackTransactions(ctx, req.GetHeight())
+func (s *server) GetTxFromPool(ctx context.Context, req *pb.GetTxFromPoolReq) (*pb.GetTxFromPoolRes, error) {
+	hashes, err := s.svc.GetHashFromPool(ctx, req.GetTxCount(), req.GetQuotaLimit())
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.PackTransactionsRes{
-		TxHashes: hashes,
+	return &pb.GetTxFromPoolRes{
+		TxHashes: hash.HashesToBytesS(hashes),
 	}, nil
+}
+
+func (s *server) EnsureFromPool(ctx context.Context, req *pb.EnsureFromPoolReq) (*pb.Empty, error) {
+	if err := s.svc.EnsureFromPool(ctx, req.GetNodeId(), req.GetQuotaUsed(), hash.BytesSToHashes(req.GetTxHashes())); err != nil {
+		return nil, err
+	}
+
+	return &pb.Empty{}, nil
+}
+
+func (s *server) ClearPool(ctx context.Context, req *pb.ClearPoolReq) (*pb.Empty, error) {
+	if err := s.svc.ClearPool(ctx, req.GetHeight()); err != nil {
+		return nil, err
+	}
+
+	return &pb.Empty{}, nil
+}
+
+func (s *server) EnsureHashes(ctx context.Context, req *pb.EnsureHashesReq) (*pb.EnsureHashesRes, error) {
+	return nil, nil
 }
