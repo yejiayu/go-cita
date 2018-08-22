@@ -17,115 +17,12 @@ package raw
 
 import (
 	"context"
-	"fmt"
-	"strings"
-
-	"github.com/pingcap/tidb/config"
-	"github.com/pingcap/tidb/kv"
-	"github.com/pingcap/tidb/store/tikv"
-
-	"github.com/yejiayu/go-cita/log"
 )
 
 type Interface interface {
-	Put(ctx context.Context, tableName, key, value []byte) error
-	Get(ctx context.Context, tableName, key []byte) ([]byte, error)
-	Delete(ctx context.Context, tableName, key []byte) error
+	Put(ctx context.Context, namespace string, key, value []byte) error
+	Get(ctx context.Context, namespace string, key []byte) ([]byte, error)
+	Delete(ctx context.Context, namespace string, key []byte) error
 
-	Scan(ctx context.Context, tableName, prefix []byte, limit int) ([][]byte, [][]byte, error)
-
-	// BeginTransaction(ctx context.Context) (kv.Transaction, error)
-	BeginTransaction(ctx context.Context) (Transaction, error)
-}
-
-func New(urls []string) (Interface, error) {
-	client, err := tikv.NewRawKVClient(urls, config.Security{})
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create the RawKVClient %s", err)
-	}
-
-	driver := tikv.Driver{}
-	storage, err := driver.Open("tikv://" + strings.Join(urls, ","))
-	if err != nil {
-		return nil, err
-	}
-	storage.Begin()
-
-	return &rawDB{
-		client:  client,
-		storage: storage,
-	}, nil
-}
-
-type rawDB struct {
-	client  *tikv.RawKVClient
-	storage kv.Storage
-}
-
-func (db *rawDB) Put(ctx context.Context, tableName, key, value []byte) error {
-	log.Infof("database put, table name is %s", string(tableName))
-	// span, _ := ot.StartSpanFromContext(ctx, "database")
-	// defer span.Finish()
-	//
-	// span.SetTag("table_name", string(tableName))
-	// span.SetTag("method", "PUT")
-	return db.client.Put(buildKey(tableName, key), value)
-}
-
-func (db *rawDB) Get(ctx context.Context, tableName, key []byte) ([]byte, error) {
-	// span, _ := ot.StartSpanFromContext(ctx, "database")
-	// defer span.Finish()
-	//
-	// span.SetTag("table_name", string(tableName))
-	// span.SetTag("method", "GET")
-	return db.client.Get(buildKey(tableName, key))
-	// data, err := db.client.Get(buildKey(tableName, key))
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// if len(data) > 0 {
-	// 	return nil, errors.DatabaseNotFound
-	// }
-	//
-	// return data, nil
-}
-
-func (db *rawDB) Delete(ctx context.Context, tableName, key []byte) error {
-	// span, _ := ot.StartSpanFromContext(ctx, "database")
-	// defer span.Finish()
-	//
-	// span.SetTag("table_name", string(tableName))
-	// span.SetTag("method", "DELETE")
-	return db.client.Delete(buildKey(tableName, key))
-}
-
-func (db *rawDB) Scan(ctx context.Context, tableName, prefix []byte, limit int) ([][]byte, [][]byte, error) {
-	// span, _ := ot.StartSpanFromContext(ctx, "database")
-	// defer span.Finish()
-	//
-	// span.SetTag("table_name", string(tableName))
-	// span.SetTag("method", "scan")
-	return db.client.Scan(buildKey(tableName, prefix), limit)
-}
-
-// func (db *rawDB) BeginTransaction(ctx context.Context) (kv.Transaction, error) {
-// 	return db.storage.Begin()
-// }
-
-func (db *rawDB) BeginTransaction(ctx context.Context) (Transaction, error) {
-	tx, err := db.storage.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	return beginTransaction(ctx, tx), nil
-}
-
-func buildKey(tableName, key []byte) []byte {
-	if key != nil {
-		return append(tableName, key...)
-	}
-
-	return tableName
+	Scan(ctx context.Context, namespace string, prefix []byte, limit int) ([][]byte, [][]byte, error)
 }

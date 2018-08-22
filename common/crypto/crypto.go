@@ -67,3 +67,8 @@ func PubkeyToAddress(p ecdsa.PublicKey) hash.Address {
 func FromECDSAPub(pub *ecdsa.PublicKey) []byte {
 	return crypto.FromECDSAPub(pub)
 }
+
+// CompressPubkey encodes a public key to the 33-byte compressed format.
+func CompressPubkey(pubkey *ecdsa.PublicKey) []byte {
+	return crypto.CompressPubkey(pubkey)
+}

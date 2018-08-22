@@ -16,8 +16,14 @@
 package database
 
 import (
-	"github.com/yejiayu/go-cita/database/block"
+	"log"
+	"strings"
+
 	"github.com/yejiayu/go-cita/database/raw"
+	"github.com/yejiayu/go-cita/database/raw/redis"
+	"github.com/yejiayu/go-cita/database/raw/tikv"
+
+	"github.com/yejiayu/go-cita/database/block"
 	"github.com/yejiayu/go-cita/database/tx"
 )
 
@@ -26,13 +32,22 @@ type Factory interface {
 	TxDB() tx.Interface
 }
 
-func NewFactory(urls []string) (Factory, error) {
-	// "47.75.129.215:2379", "47.75.129.215:2380", "47.75.129.215:2381"
-	raw, err := raw.New(urls)
+func NewFactory(t string, urls []string) (Factory, error) {
+	var raw raw.Interface
+	var err error
+
+	switch strings.ToLower(t) {
+	case "tikv":
+		raw, err = tikv.New(urls)
+	case "redis":
+		raw, err = redis.New(urls)
+	default:
+		log.Panic("Can't match type %s", t)
+	}
+
 	if err != nil {
 		return nil, err
 	}
-
 	return &factory{raw: raw}, nil
 }
 
