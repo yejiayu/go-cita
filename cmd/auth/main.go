@@ -16,48 +16,30 @@
 package main
 
 import (
-	"flag"
-
-	"github.com/caarlos0/env"
+	"github.com/yejiayu/go-cita/clients"
+	"github.com/yejiayu/go-cita/common/tracing"
 
 	"github.com/yejiayu/go-cita/log"
-	"github.com/yejiayu/go-cita/tools/tracing"
 
 	"github.com/yejiayu/go-cita/auth"
+	cfg "github.com/yejiayu/go-cita/config/auth"
 	"github.com/yejiayu/go-cita/database"
 )
 
-type config struct {
-	Port       string   `env:"PORT" envDefault:"8001"`
-	DbURL      []string `env:"DB_URL" envSeparator:"," envDefault:"47.75.129.215:2379,47.75.129.215:2380,47.75.129.215:2381"`
-	RedisURL   string   `env:"REDIS_URL" envDefault:"127.0.0.1:6379"`
-	TracingURL string   `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
-}
-
 func main() {
-	flag.Parse()
-
-	cfg := config{}
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Infof("env config %+v", cfg)
-
-	otClose, err := tracing.Configure("cita-auth", cfg.TracingURL)
+	otClose, err := tracing.Configure("cita-auth", cfg.GetTracingURL())
 	if err != nil {
 		log.Error(err)
 	} else {
 		defer otClose.Close()
 	}
 
-	dbFactory, err := database.NewFactory(cfg.DbURL)
+	dbFactory, err := database.NewFactory(cfg.GetDbType(), cfg.GetDbURL())
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
-	if err := auth.New(cfg.Port, cfg.RedisURL, dbFactory); err != nil {
-		log.Fatal(err)
-	}
+	networkClient := clients.NewNetworkClient(cfg.GetNetworkURL())
+
+	auth.New(dbFactory, networkClient).Run()
 }

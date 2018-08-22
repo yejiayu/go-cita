@@ -43,7 +43,7 @@ func (x Crypto) String() string {
 	return proto.EnumName(Crypto_name, int32(x))
 }
 func (Crypto) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{0}
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{0}
 }
 
 type Transaction struct {
@@ -64,7 +64,7 @@ func (m *Transaction) Reset()         { *m = Transaction{} }
 func (m *Transaction) String() string { return proto.CompactTextString(m) }
 func (*Transaction) ProtoMessage()    {}
 func (*Transaction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{0}
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{0}
 }
 func (m *Transaction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Transaction.Unmarshal(m, b)
@@ -153,7 +153,7 @@ func (m *UnverifiedTransaction) Reset()         { *m = UnverifiedTransaction{} }
 func (m *UnverifiedTransaction) String() string { return proto.CompactTextString(m) }
 func (*UnverifiedTransaction) ProtoMessage()    {}
 func (*UnverifiedTransaction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{1}
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{1}
 }
 func (m *UnverifiedTransaction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UnverifiedTransaction.Unmarshal(m, b)
@@ -207,7 +207,7 @@ func (m *SignedTransaction) Reset()         { *m = SignedTransaction{} }
 func (m *SignedTransaction) String() string { return proto.CompactTextString(m) }
 func (*SignedTransaction) ProtoMessage()    {}
 func (*SignedTransaction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{2}
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{2}
 }
 func (m *SignedTransaction) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SignedTransaction.Unmarshal(m, b)
@@ -248,76 +248,76 @@ func (m *SignedTransaction) GetSigner() []byte {
 	return nil
 }
 
-type SendTransactionReq struct {
+type AddUnverifyTxReq struct {
 	Untx                 *UnverifiedTransaction `protobuf:"bytes,1,opt,name=untx" json:"untx,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
 }
 
-func (m *SendTransactionReq) Reset()         { *m = SendTransactionReq{} }
-func (m *SendTransactionReq) String() string { return proto.CompactTextString(m) }
-func (*SendTransactionReq) ProtoMessage()    {}
-func (*SendTransactionReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{3}
+func (m *AddUnverifyTxReq) Reset()         { *m = AddUnverifyTxReq{} }
+func (m *AddUnverifyTxReq) String() string { return proto.CompactTextString(m) }
+func (*AddUnverifyTxReq) ProtoMessage()    {}
+func (*AddUnverifyTxReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{3}
 }
-func (m *SendTransactionReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SendTransactionReq.Unmarshal(m, b)
+func (m *AddUnverifyTxReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddUnverifyTxReq.Unmarshal(m, b)
 }
-func (m *SendTransactionReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SendTransactionReq.Marshal(b, m, deterministic)
+func (m *AddUnverifyTxReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddUnverifyTxReq.Marshal(b, m, deterministic)
 }
-func (dst *SendTransactionReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SendTransactionReq.Merge(dst, src)
+func (dst *AddUnverifyTxReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddUnverifyTxReq.Merge(dst, src)
 }
-func (m *SendTransactionReq) XXX_Size() int {
-	return xxx_messageInfo_SendTransactionReq.Size(m)
+func (m *AddUnverifyTxReq) XXX_Size() int {
+	return xxx_messageInfo_AddUnverifyTxReq.Size(m)
 }
-func (m *SendTransactionReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_SendTransactionReq.DiscardUnknown(m)
+func (m *AddUnverifyTxReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddUnverifyTxReq.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SendTransactionReq proto.InternalMessageInfo
+var xxx_messageInfo_AddUnverifyTxReq proto.InternalMessageInfo
 
-func (m *SendTransactionReq) GetUntx() *UnverifiedTransaction {
+func (m *AddUnverifyTxReq) GetUntx() *UnverifiedTransaction {
 	if m != nil {
 		return m.Untx
 	}
 	return nil
 }
 
-type SendTransactionRes struct {
+type AddUnverifyTxRes struct {
 	TxHash               []byte   `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *SendTransactionRes) Reset()         { *m = SendTransactionRes{} }
-func (m *SendTransactionRes) String() string { return proto.CompactTextString(m) }
-func (*SendTransactionRes) ProtoMessage()    {}
-func (*SendTransactionRes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{4}
+func (m *AddUnverifyTxRes) Reset()         { *m = AddUnverifyTxRes{} }
+func (m *AddUnverifyTxRes) String() string { return proto.CompactTextString(m) }
+func (*AddUnverifyTxRes) ProtoMessage()    {}
+func (*AddUnverifyTxRes) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{4}
 }
-func (m *SendTransactionRes) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SendTransactionRes.Unmarshal(m, b)
+func (m *AddUnverifyTxRes) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AddUnverifyTxRes.Unmarshal(m, b)
 }
-func (m *SendTransactionRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SendTransactionRes.Marshal(b, m, deterministic)
+func (m *AddUnverifyTxRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AddUnverifyTxRes.Marshal(b, m, deterministic)
 }
-func (dst *SendTransactionRes) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SendTransactionRes.Merge(dst, src)
+func (dst *AddUnverifyTxRes) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AddUnverifyTxRes.Merge(dst, src)
 }
-func (m *SendTransactionRes) XXX_Size() int {
-	return xxx_messageInfo_SendTransactionRes.Size(m)
+func (m *AddUnverifyTxRes) XXX_Size() int {
+	return xxx_messageInfo_AddUnverifyTxRes.Size(m)
 }
-func (m *SendTransactionRes) XXX_DiscardUnknown() {
-	xxx_messageInfo_SendTransactionRes.DiscardUnknown(m)
+func (m *AddUnverifyTxRes) XXX_DiscardUnknown() {
+	xxx_messageInfo_AddUnverifyTxRes.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_SendTransactionRes proto.InternalMessageInfo
+var xxx_messageInfo_AddUnverifyTxRes proto.InternalMessageInfo
 
-func (m *SendTransactionRes) GetTxHash() []byte {
+func (m *AddUnverifyTxRes) GetTxHash() []byte {
 	if m != nil {
 		return m.TxHash
 	}
@@ -335,7 +335,7 @@ func (m *VerifyTxHashesReq) Reset()         { *m = VerifyTxHashesReq{} }
 func (m *VerifyTxHashesReq) String() string { return proto.CompactTextString(m) }
 func (*VerifyTxHashesReq) ProtoMessage()    {}
 func (*VerifyTxHashesReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{5}
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{5}
 }
 func (m *VerifyTxHashesReq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_VerifyTxHashesReq.Unmarshal(m, b)
@@ -374,7 +374,7 @@ func (m *GetTxFromPoolReq) Reset()         { *m = GetTxFromPoolReq{} }
 func (m *GetTxFromPoolReq) String() string { return proto.CompactTextString(m) }
 func (*GetTxFromPoolReq) ProtoMessage()    {}
 func (*GetTxFromPoolReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{6}
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{6}
 }
 func (m *GetTxFromPoolReq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTxFromPoolReq.Unmarshal(m, b)
@@ -408,6 +408,60 @@ func (m *GetTxFromPoolReq) GetTxCount() uint32 {
 	return 0
 }
 
+type EnsureFromPoolReq struct {
+	NodeId               uint32   `protobuf:"varint,1,opt,name=node_id,json=nodeId" json:"node_id,omitempty"`
+	QuotaUsed            uint64   `protobuf:"varint,2,opt,name=quota_used,json=quotaUsed" json:"quota_used,omitempty"`
+	TxHashes             [][]byte `protobuf:"bytes,3,rep,name=tx_hashes,json=txHashes,proto3" json:"tx_hashes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EnsureFromPoolReq) Reset()         { *m = EnsureFromPoolReq{} }
+func (m *EnsureFromPoolReq) String() string { return proto.CompactTextString(m) }
+func (*EnsureFromPoolReq) ProtoMessage()    {}
+func (*EnsureFromPoolReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{7}
+}
+func (m *EnsureFromPoolReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EnsureFromPoolReq.Unmarshal(m, b)
+}
+func (m *EnsureFromPoolReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EnsureFromPoolReq.Marshal(b, m, deterministic)
+}
+func (dst *EnsureFromPoolReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EnsureFromPoolReq.Merge(dst, src)
+}
+func (m *EnsureFromPoolReq) XXX_Size() int {
+	return xxx_messageInfo_EnsureFromPoolReq.Size(m)
+}
+func (m *EnsureFromPoolReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_EnsureFromPoolReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EnsureFromPoolReq proto.InternalMessageInfo
+
+func (m *EnsureFromPoolReq) GetNodeId() uint32 {
+	if m != nil {
+		return m.NodeId
+	}
+	return 0
+}
+
+func (m *EnsureFromPoolReq) GetQuotaUsed() uint64 {
+	if m != nil {
+		return m.QuotaUsed
+	}
+	return 0
+}
+
+func (m *EnsureFromPoolReq) GetTxHashes() [][]byte {
+	if m != nil {
+		return m.TxHashes
+	}
+	return nil
+}
+
 type GetTxFromPoolRes struct {
 	TxHashes             [][]byte `protobuf:"bytes,1,rep,name=tx_hashes,json=txHashes,proto3" json:"tx_hashes,omitempty"`
 	QuotaUsed            uint64   `protobuf:"varint,2,opt,name=quota_used,json=quotaUsed" json:"quota_used,omitempty"`
@@ -420,7 +474,7 @@ func (m *GetTxFromPoolRes) Reset()         { *m = GetTxFromPoolRes{} }
 func (m *GetTxFromPoolRes) String() string { return proto.CompactTextString(m) }
 func (*GetTxFromPoolRes) ProtoMessage()    {}
 func (*GetTxFromPoolRes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_0a3acd521445ad60, []int{7}
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{8}
 }
 func (m *GetTxFromPoolRes) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTxFromPoolRes.Unmarshal(m, b)
@@ -454,15 +508,141 @@ func (m *GetTxFromPoolRes) GetQuotaUsed() uint64 {
 	return 0
 }
 
+type ClearPoolReq struct {
+	Height               uint64   `protobuf:"varint,1,opt,name=height" json:"height,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClearPoolReq) Reset()         { *m = ClearPoolReq{} }
+func (m *ClearPoolReq) String() string { return proto.CompactTextString(m) }
+func (*ClearPoolReq) ProtoMessage()    {}
+func (*ClearPoolReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{9}
+}
+func (m *ClearPoolReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClearPoolReq.Unmarshal(m, b)
+}
+func (m *ClearPoolReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClearPoolReq.Marshal(b, m, deterministic)
+}
+func (dst *ClearPoolReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClearPoolReq.Merge(dst, src)
+}
+func (m *ClearPoolReq) XXX_Size() int {
+	return xxx_messageInfo_ClearPoolReq.Size(m)
+}
+func (m *ClearPoolReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClearPoolReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClearPoolReq proto.InternalMessageInfo
+
+func (m *ClearPoolReq) GetHeight() uint64 {
+	if m != nil {
+		return m.Height
+	}
+	return 0
+}
+
+type EnsureHashesReq struct {
+	NodeId               uint32   `protobuf:"varint,1,opt,name=node_id,json=nodeId" json:"node_id,omitempty"`
+	TxHashes             [][]byte `protobuf:"bytes,2,rep,name=tx_hashes,json=txHashes,proto3" json:"tx_hashes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EnsureHashesReq) Reset()         { *m = EnsureHashesReq{} }
+func (m *EnsureHashesReq) String() string { return proto.CompactTextString(m) }
+func (*EnsureHashesReq) ProtoMessage()    {}
+func (*EnsureHashesReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{10}
+}
+func (m *EnsureHashesReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EnsureHashesReq.Unmarshal(m, b)
+}
+func (m *EnsureHashesReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EnsureHashesReq.Marshal(b, m, deterministic)
+}
+func (dst *EnsureHashesReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EnsureHashesReq.Merge(dst, src)
+}
+func (m *EnsureHashesReq) XXX_Size() int {
+	return xxx_messageInfo_EnsureHashesReq.Size(m)
+}
+func (m *EnsureHashesReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_EnsureHashesReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EnsureHashesReq proto.InternalMessageInfo
+
+func (m *EnsureHashesReq) GetNodeId() uint32 {
+	if m != nil {
+		return m.NodeId
+	}
+	return 0
+}
+
+func (m *EnsureHashesReq) GetTxHashes() [][]byte {
+	if m != nil {
+		return m.TxHashes
+	}
+	return nil
+}
+
+type EnsureHashesRes struct {
+	TxHashes             [][]byte `protobuf:"bytes,1,rep,name=tx_hashes,json=txHashes,proto3" json:"tx_hashes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EnsureHashesRes) Reset()         { *m = EnsureHashesRes{} }
+func (m *EnsureHashesRes) String() string { return proto.CompactTextString(m) }
+func (*EnsureHashesRes) ProtoMessage()    {}
+func (*EnsureHashesRes) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_1db9cc2c974e6a61, []int{11}
+}
+func (m *EnsureHashesRes) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EnsureHashesRes.Unmarshal(m, b)
+}
+func (m *EnsureHashesRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EnsureHashesRes.Marshal(b, m, deterministic)
+}
+func (dst *EnsureHashesRes) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EnsureHashesRes.Merge(dst, src)
+}
+func (m *EnsureHashesRes) XXX_Size() int {
+	return xxx_messageInfo_EnsureHashesRes.Size(m)
+}
+func (m *EnsureHashesRes) XXX_DiscardUnknown() {
+	xxx_messageInfo_EnsureHashesRes.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EnsureHashesRes proto.InternalMessageInfo
+
+func (m *EnsureHashesRes) GetTxHashes() [][]byte {
+	if m != nil {
+		return m.TxHashes
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Transaction)(nil), "Transaction")
 	proto.RegisterType((*UnverifiedTransaction)(nil), "UnverifiedTransaction")
 	proto.RegisterType((*SignedTransaction)(nil), "SignedTransaction")
-	proto.RegisterType((*SendTransactionReq)(nil), "SendTransactionReq")
-	proto.RegisterType((*SendTransactionRes)(nil), "SendTransactionRes")
+	proto.RegisterType((*AddUnverifyTxReq)(nil), "AddUnverifyTxReq")
+	proto.RegisterType((*AddUnverifyTxRes)(nil), "AddUnverifyTxRes")
 	proto.RegisterType((*VerifyTxHashesReq)(nil), "VerifyTxHashesReq")
 	proto.RegisterType((*GetTxFromPoolReq)(nil), "GetTxFromPoolReq")
+	proto.RegisterType((*EnsureFromPoolReq)(nil), "EnsureFromPoolReq")
 	proto.RegisterType((*GetTxFromPoolRes)(nil), "GetTxFromPoolRes")
+	proto.RegisterType((*ClearPoolReq)(nil), "ClearPoolReq")
+	proto.RegisterType((*EnsureHashesReq)(nil), "EnsureHashesReq")
+	proto.RegisterType((*EnsureHashesRes)(nil), "EnsureHashesRes")
 	proto.RegisterEnum("Crypto", Crypto_name, Crypto_value)
 }
 
@@ -478,9 +658,11 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type AuthClient interface {
-	SendTransaction(ctx context.Context, in *SendTransactionReq, opts ...grpc.CallOption) (*SendTransactionRes, error)
+	AddUnverifyTx(ctx context.Context, in *AddUnverifyTxReq, opts ...grpc.CallOption) (*AddUnverifyTxRes, error)
 	GetTxFromPool(ctx context.Context, in *GetTxFromPoolReq, opts ...grpc.CallOption) (*GetTxFromPoolRes, error)
-	VerifyTxHashes(ctx context.Context, in *VerifyTxHashesReq, opts ...grpc.CallOption) (*Empty, error)
+	EnsureFromPool(ctx context.Context, in *EnsureFromPoolReq, opts ...grpc.CallOption) (*Empty, error)
+	ClearPool(ctx context.Context, in *ClearPoolReq, opts ...grpc.CallOption) (*Empty, error)
+	EnsureHashes(ctx context.Context, in *EnsureHashesReq, opts ...grpc.CallOption) (*EnsureHashesRes, error)
 }
 
 type authClient struct {
@@ -491,9 +673,9 @@ func NewAuthClient(cc *grpc.ClientConn) AuthClient {
 	return &authClient{cc}
 }
 
-func (c *authClient) SendTransaction(ctx context.Context, in *SendTransactionReq, opts ...grpc.CallOption) (*SendTransactionRes, error) {
-	out := new(SendTransactionRes)
-	err := c.cc.Invoke(ctx, "/Auth/SendTransaction", in, out, opts...)
+func (c *authClient) AddUnverifyTx(ctx context.Context, in *AddUnverifyTxReq, opts ...grpc.CallOption) (*AddUnverifyTxRes, error) {
+	out := new(AddUnverifyTxRes)
+	err := c.cc.Invoke(ctx, "/Auth/AddUnverifyTx", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -509,9 +691,27 @@ func (c *authClient) GetTxFromPool(ctx context.Context, in *GetTxFromPoolReq, op
 	return out, nil
 }
 
-func (c *authClient) VerifyTxHashes(ctx context.Context, in *VerifyTxHashesReq, opts ...grpc.CallOption) (*Empty, error) {
+func (c *authClient) EnsureFromPool(ctx context.Context, in *EnsureFromPoolReq, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/Auth/VerifyTxHashes", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Auth/EnsureFromPool", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) ClearPool(ctx context.Context, in *ClearPoolReq, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/Auth/ClearPool", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) EnsureHashes(ctx context.Context, in *EnsureHashesReq, opts ...grpc.CallOption) (*EnsureHashesRes, error) {
+	out := new(EnsureHashesRes)
+	err := c.cc.Invoke(ctx, "/Auth/EnsureHashes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -520,29 +720,31 @@ func (c *authClient) VerifyTxHashes(ctx context.Context, in *VerifyTxHashesReq, 
 
 // AuthServer is the server API for Auth service.
 type AuthServer interface {
-	SendTransaction(context.Context, *SendTransactionReq) (*SendTransactionRes, error)
+	AddUnverifyTx(context.Context, *AddUnverifyTxReq) (*AddUnverifyTxRes, error)
 	GetTxFromPool(context.Context, *GetTxFromPoolReq) (*GetTxFromPoolRes, error)
-	VerifyTxHashes(context.Context, *VerifyTxHashesReq) (*Empty, error)
+	EnsureFromPool(context.Context, *EnsureFromPoolReq) (*Empty, error)
+	ClearPool(context.Context, *ClearPoolReq) (*Empty, error)
+	EnsureHashes(context.Context, *EnsureHashesReq) (*EnsureHashesRes, error)
 }
 
 func RegisterAuthServer(s *grpc.Server, srv AuthServer) {
 	s.RegisterService(&_Auth_serviceDesc, srv)
 }
 
-func _Auth_SendTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendTransactionReq)
+func _Auth_AddUnverifyTx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddUnverifyTxReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServer).SendTransaction(ctx, in)
+		return srv.(AuthServer).AddUnverifyTx(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auth/SendTransaction",
+		FullMethod: "/Auth/AddUnverifyTx",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServer).SendTransaction(ctx, req.(*SendTransactionReq))
+		return srv.(AuthServer).AddUnverifyTx(ctx, req.(*AddUnverifyTxReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -565,20 +767,56 @@ func _Auth_GetTxFromPool_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auth_VerifyTxHashes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VerifyTxHashesReq)
+func _Auth_EnsureFromPool_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnsureFromPoolReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServer).VerifyTxHashes(ctx, in)
+		return srv.(AuthServer).EnsureFromPool(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auth/VerifyTxHashes",
+		FullMethod: "/Auth/EnsureFromPool",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServer).VerifyTxHashes(ctx, req.(*VerifyTxHashesReq))
+		return srv.(AuthServer).EnsureFromPool(ctx, req.(*EnsureFromPoolReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_ClearPool_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClearPoolReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).ClearPool(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Auth/ClearPool",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).ClearPool(ctx, req.(*ClearPoolReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth_EnsureHashes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnsureHashesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServer).EnsureHashes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Auth/EnsureHashes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServer).EnsureHashes(ctx, req.(*EnsureHashesReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -588,59 +826,73 @@ var _Auth_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*AuthServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SendTransaction",
-			Handler:    _Auth_SendTransaction_Handler,
+			MethodName: "AddUnverifyTx",
+			Handler:    _Auth_AddUnverifyTx_Handler,
 		},
 		{
 			MethodName: "GetTxFromPool",
 			Handler:    _Auth_GetTxFromPool_Handler,
 		},
 		{
-			MethodName: "VerifyTxHashes",
-			Handler:    _Auth_VerifyTxHashes_Handler,
+			MethodName: "EnsureFromPool",
+			Handler:    _Auth_EnsureFromPool_Handler,
+		},
+		{
+			MethodName: "ClearPool",
+			Handler:    _Auth_ClearPool_Handler,
+		},
+		{
+			MethodName: "EnsureHashes",
+			Handler:    _Auth_EnsureHashes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "auth.proto",
 }
 
-func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_0a3acd521445ad60) }
+func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_1db9cc2c974e6a61) }
 
-var fileDescriptor_auth_0a3acd521445ad60 = []byte{
-	// 557 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_auth_1db9cc2c974e6a61 = []byte{
+	// 650 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0x5d, 0x6f, 0xd3, 0x30,
-	0x14, 0x9d, 0xb7, 0x2c, 0x69, 0x6f, 0xbb, 0x8f, 0x9a, 0x31, 0x42, 0x07, 0x5a, 0x95, 0xa7, 0x6a,
-	0x12, 0x11, 0x2a, 0x0f, 0x3c, 0x21, 0x01, 0xd3, 0x60, 0x48, 0x80, 0x26, 0x77, 0x83, 0xc7, 0xc8,
-	0x4b, 0x4c, 0x63, 0xd1, 0xda, 0x5b, 0x7c, 0x53, 0xba, 0x3f, 0xc0, 0x23, 0x3f, 0x85, 0x5f, 0xc3,
-	0x0f, 0x42, 0x76, 0x22, 0x2d, 0xdd, 0x2a, 0x78, 0xcb, 0x39, 0xf7, 0xde, 0x73, 0x8f, 0x8f, 0xad,
-	0x00, 0xf0, 0x12, 0xf3, 0xf8, 0xaa, 0xd0, 0xa8, 0xfb, 0xdd, 0x54, 0xcf, 0x66, 0x5a, 0x55, 0x28,
-	0xfa, 0x43, 0xa0, 0x73, 0x5e, 0x70, 0x65, 0x78, 0x8a, 0x52, 0x2b, 0xba, 0x0d, 0xeb, 0xa8, 0x43,
-	0x32, 0x20, 0xc3, 0x36, 0x5b, 0x47, 0x4d, 0xf7, 0x60, 0x53, 0x69, 0x95, 0x8a, 0x70, 0xdd, 0x51,
-	0x15, 0xb0, 0xec, 0x75, 0xa9, 0x91, 0x87, 0x1b, 0x03, 0x32, 0xf4, 0x58, 0x05, 0xe8, 0x11, 0xf4,
-	0xe6, 0x7c, 0x2a, 0xb3, 0xa4, 0x54, 0x28, 0xa7, 0xc9, 0xe5, 0x54, 0xa7, 0xdf, 0x43, 0xcf, 0x75,
-	0xec, 0xb8, 0xc2, 0x85, 0xe5, 0xdf, 0x5a, 0x9a, 0x52, 0xf0, 0x32, 0x8e, 0x3c, 0xdc, 0x1c, 0x90,
-	0x61, 0x97, 0xb9, 0x6f, 0xab, 0x3a, 0xe7, 0xd3, 0x52, 0x84, 0x7e, 0xa5, 0xea, 0x00, 0x7d, 0x0c,
-	0xad, 0x34, 0xe7, 0x52, 0x25, 0x32, 0x0b, 0x83, 0x01, 0x19, 0x6e, 0xb1, 0xc0, 0xe1, 0x0f, 0x19,
-	0x0d, 0x21, 0x98, 0x8b, 0xc2, 0x48, 0xad, 0xc2, 0x56, 0x55, 0xa9, 0x61, 0xf4, 0x93, 0xc0, 0xc3,
-	0x0b, 0x35, 0x17, 0x85, 0xfc, 0x26, 0x45, 0xd6, 0x3c, 0x60, 0x0c, 0x1d, 0xbc, 0x85, 0xee, 0xa4,
-	0x9d, 0x51, 0x37, 0x6e, 0xb4, 0xb0, 0x66, 0x03, 0x7d, 0x02, 0x6d, 0x23, 0x27, 0x8a, 0x63, 0x59,
-	0x54, 0x21, 0x74, 0xd9, 0x2d, 0x41, 0x0f, 0xc1, 0x4f, 0x8b, 0x9b, 0x2b, 0xd4, 0x2e, 0x89, 0xed,
-	0x51, 0x10, 0x1f, 0x3b, 0xc8, 0x6a, 0x3a, 0xfa, 0x45, 0xa0, 0x37, 0x96, 0x13, 0xb5, 0x6c, 0xe2,
-	0x14, 0xf6, 0x1a, 0x3b, 0x92, 0x1f, 0x12, 0xf3, 0xc4, 0xc8, 0x49, 0xed, 0x66, 0x3f, 0x5e, 0x69,
-	0x9d, 0xd1, 0xc6, 0xcc, 0x57, 0x89, 0xf9, 0x58, 0x4e, 0xe8, 0x23, 0x08, 0x70, 0x91, 0xe4, 0xdc,
-	0xe4, 0xb5, 0x39, 0x1f, 0x17, 0xa7, 0xdc, 0xe4, 0x74, 0x1f, 0x7c, 0x6b, 0x53, 0x14, 0xce, 0x59,
-	0x97, 0xd5, 0x28, 0x7a, 0x0d, 0x74, 0x2c, 0xd4, 0x92, 0xae, 0xb8, 0xa6, 0x47, 0xe0, 0x95, 0x0a,
-	0x17, 0xff, 0x31, 0xe0, 0x7a, 0xa2, 0x67, 0x2b, 0x14, 0x4c, 0xd3, 0x08, 0x69, 0x1a, 0x89, 0x9e,
-	0x43, 0xef, 0x8b, 0xd5, 0xba, 0x39, 0x77, 0x58, 0x18, 0xbb, 0xef, 0x00, 0xda, 0x75, 0xb7, 0x30,
-	0x21, 0x19, 0x6c, 0x0c, 0xbb, 0xac, 0x85, 0x75, 0x3d, 0xfa, 0x0c, 0xbb, 0xef, 0x05, 0x9e, 0x2f,
-	0xde, 0x15, 0x7a, 0x76, 0xa6, 0xf5, 0xd4, 0x0e, 0x1c, 0x42, 0xc7, 0x3d, 0xb2, 0x64, 0x2a, 0x67,
-	0x12, 0xdd, 0x0a, 0x8f, 0x81, 0xa3, 0x3e, 0x5a, 0xc6, 0x3e, 0x13, 0x5c, 0x24, 0xa9, 0x2e, 0x15,
-	0xba, 0x24, 0xb6, 0x58, 0x80, 0x8b, 0x63, 0x0b, 0x57, 0xe8, 0x99, 0x7f, 0x1a, 0xa0, 0x4f, 0xa1,
-	0x52, 0x4e, 0x4a, 0x23, 0x32, 0xa7, 0xe6, 0xb1, 0xb6, 0x63, 0x2e, 0x8c, 0xc8, 0x8e, 0x0e, 0xc0,
-	0xaf, 0x6e, 0x99, 0xb6, 0xc0, 0x1b, 0x9f, 0x1c, 0x9f, 0xed, 0xae, 0xd1, 0x00, 0x36, 0xc6, 0x9f,
-	0x46, 0xbb, 0x64, 0xf4, 0x9b, 0x80, 0xf7, 0xa6, 0xc4, 0x9c, 0xbe, 0x82, 0x9d, 0x3b, 0x31, 0xd1,
-	0x07, 0xf1, 0xfd, 0xe8, 0xfb, 0x2b, 0x48, 0x13, 0xad, 0xd1, 0x97, 0xb0, 0xb5, 0x64, 0x9a, 0xf6,
-	0xe2, 0xbb, 0xa1, 0xf4, 0xef, 0x51, 0x76, 0x30, 0x86, 0xed, 0xe5, 0xbc, 0x29, 0x8d, 0xef, 0x5d,
-	0x40, 0xdf, 0x8f, 0x4f, 0x66, 0x57, 0x78, 0x13, 0xad, 0x5d, 0xfa, 0xee, 0x47, 0xf0, 0xe2, 0x6f,
-	0x00, 0x00, 0x00, 0xff, 0xff, 0xfa, 0xb5, 0xd5, 0x1b, 0x24, 0x04, 0x00, 0x00,
+	0x14, 0x6d, 0xda, 0x2c, 0x69, 0x6f, 0xd3, 0xad, 0xb5, 0xc6, 0x16, 0x3a, 0xd0, 0xaa, 0x08, 0xa1,
+	0x6a, 0x48, 0x11, 0x2a, 0x48, 0xbc, 0x21, 0x8d, 0x6a, 0x6c, 0x93, 0x00, 0x4d, 0xee, 0x06, 0x8f,
+	0x51, 0xd6, 0x98, 0xc6, 0x22, 0xb5, 0xb7, 0xd8, 0x29, 0xd9, 0x3b, 0xe2, 0x91, 0x5f, 0xc7, 0x0f,
+	0x42, 0x76, 0x32, 0x96, 0xb6, 0xb0, 0xbd, 0xf5, 0x1c, 0xdf, 0x8f, 0x73, 0x4f, 0x8f, 0x02, 0x10,
+	0x66, 0x32, 0xf6, 0xaf, 0x52, 0x2e, 0x79, 0xdf, 0x99, 0xf2, 0xf9, 0x9c, 0xb3, 0x02, 0x79, 0xbf,
+	0x0d, 0x68, 0x9f, 0xa7, 0x21, 0x13, 0xe1, 0x54, 0x52, 0xce, 0xd0, 0x26, 0xd4, 0x25, 0x77, 0x8d,
+	0x81, 0x31, 0x6c, 0xe1, 0xba, 0xe4, 0x68, 0x1b, 0x36, 0x18, 0x67, 0x53, 0xe2, 0xd6, 0x35, 0x55,
+	0x00, 0xc5, 0x5e, 0x67, 0x5c, 0x86, 0x6e, 0x63, 0x60, 0x0c, 0x4d, 0x5c, 0x00, 0x74, 0x00, 0xbd,
+	0x45, 0x98, 0xd0, 0x28, 0xc8, 0x98, 0xa4, 0x49, 0x70, 0x99, 0xf0, 0xe9, 0x37, 0xd7, 0xd4, 0x15,
+	0x5b, 0xfa, 0xe1, 0x42, 0xf1, 0xef, 0x14, 0x8d, 0x10, 0x98, 0x51, 0x28, 0x43, 0x77, 0x63, 0x60,
+	0x0c, 0x1d, 0xac, 0x7f, 0xab, 0xa9, 0x8b, 0x30, 0xc9, 0x88, 0x6b, 0x15, 0x53, 0x35, 0x40, 0x8f,
+	0xa1, 0x39, 0x8d, 0x43, 0xca, 0x02, 0x1a, 0xb9, 0xf6, 0xc0, 0x18, 0x76, 0xb0, 0xad, 0xf1, 0x69,
+	0x84, 0x5c, 0xb0, 0x17, 0x24, 0x15, 0x94, 0x33, 0xb7, 0x59, 0xbc, 0x94, 0xd0, 0xfb, 0x69, 0xc0,
+	0xa3, 0x0b, 0xb6, 0x20, 0x29, 0xfd, 0x4a, 0x49, 0x54, 0x3d, 0xd0, 0x87, 0xb6, 0xbc, 0x83, 0xfa,
+	0xd2, 0xf6, 0xc8, 0xf1, 0x2b, 0x25, 0xb8, 0x5a, 0x80, 0x9e, 0x40, 0x4b, 0xd0, 0x19, 0x0b, 0x65,
+	0x96, 0x16, 0x26, 0x38, 0xf8, 0x8e, 0x40, 0xfb, 0x60, 0x4d, 0xd3, 0x9b, 0x2b, 0xc9, 0xb5, 0x13,
+	0x9b, 0x23, 0xdb, 0x1f, 0x6b, 0x88, 0x4b, 0xda, 0xfb, 0x65, 0x40, 0x6f, 0x42, 0x67, 0x6c, 0x59,
+	0xc4, 0x09, 0x6c, 0x57, 0x76, 0x04, 0xdf, 0xa9, 0x8c, 0x03, 0x41, 0x67, 0xa5, 0x9a, 0x1d, 0xff,
+	0x9f, 0xd2, 0x31, 0xaa, 0xf4, 0x7c, 0xa1, 0x32, 0x9e, 0xd0, 0x19, 0xda, 0x05, 0x5b, 0xe6, 0x41,
+	0x1c, 0x8a, 0xb8, 0x14, 0x67, 0xc9, 0xfc, 0x24, 0x14, 0x31, 0xda, 0x01, 0x4b, 0xc9, 0x24, 0xa9,
+	0x56, 0xe6, 0xe0, 0x12, 0x79, 0x6f, 0xa1, 0x7b, 0x18, 0x45, 0xe5, 0x82, 0x9b, 0xf3, 0x1c, 0x93,
+	0x6b, 0x74, 0x00, 0x66, 0xc6, 0x64, 0xfe, 0xc0, 0x7a, 0x5d, 0xe3, 0xbd, 0x58, 0xeb, 0x17, 0x55,
+	0x11, 0x46, 0x55, 0x84, 0xf7, 0x12, 0x7a, 0x9f, 0xcb, 0x3a, 0x85, 0x89, 0x50, 0xdb, 0xf6, 0xa0,
+	0x55, 0x56, 0x13, 0xe1, 0x1a, 0x83, 0xc6, 0xd0, 0xc1, 0x4d, 0x59, 0xbe, 0x7b, 0x9f, 0xa0, 0x7b,
+	0x4c, 0xe4, 0x79, 0xfe, 0x3e, 0xe5, 0xf3, 0x33, 0xce, 0x13, 0xd5, 0xb0, 0x0f, 0x6d, 0x1d, 0xb0,
+	0x20, 0xa1, 0x73, 0x2a, 0xf5, 0x0a, 0x13, 0x83, 0xa6, 0x3e, 0x28, 0x46, 0x45, 0x44, 0xe6, 0xc1,
+	0x94, 0x67, 0x4c, 0x6a, 0x17, 0x3a, 0xd8, 0x96, 0xf9, 0x58, 0x41, 0x2f, 0x86, 0xde, 0x11, 0x13,
+	0x59, 0x4a, 0xaa, 0x03, 0x77, 0xc1, 0x66, 0x3c, 0x22, 0x2a, 0x51, 0x86, 0x2e, 0xb7, 0x14, 0x3c,
+	0x8d, 0xd0, 0x53, 0x28, 0xc6, 0x06, 0x99, 0x20, 0x91, 0x1e, 0x65, 0xe2, 0x96, 0x66, 0x2e, 0x04,
+	0x89, 0x96, 0x95, 0x37, 0x1e, 0x54, 0x2e, 0xee, 0x3d, 0xf5, 0x81, 0x65, 0xde, 0x73, 0x70, 0xc6,
+	0x09, 0x09, 0xd3, 0x5b, 0xd1, 0x3b, 0x60, 0xc5, 0x84, 0xce, 0xe2, 0x5b, 0x03, 0x4a, 0xe4, 0x1d,
+	0xc3, 0x56, 0x71, 0xe1, 0x9d, 0xc3, 0xff, 0xbd, 0x6f, 0x49, 0x4f, 0x7d, 0xe5, 0x00, 0x7f, 0x75,
+	0xd0, 0xfd, 0xfa, 0x0f, 0xf6, 0xc0, 0x2a, 0xc2, 0x8e, 0x9a, 0x60, 0x4e, 0x8e, 0xc6, 0x67, 0xdd,
+	0x1a, 0xb2, 0xa1, 0x31, 0xf9, 0x38, 0xea, 0x1a, 0xa3, 0x1f, 0x75, 0x30, 0x0f, 0x33, 0x19, 0xa3,
+	0x37, 0xd0, 0x59, 0xca, 0x0b, 0xea, 0xf9, 0xab, 0xf9, 0xeb, 0xaf, 0x51, 0xc2, 0xab, 0xa9, 0xc6,
+	0x25, 0x3f, 0x51, 0xcf, 0x5f, 0x4d, 0x46, 0x7f, 0x8d, 0x52, 0x8d, 0x3e, 0x6c, 0x2e, 0xff, 0xe5,
+	0x08, 0xf9, 0x6b, 0x19, 0xe8, 0x5b, 0xfe, 0xd1, 0xfc, 0x4a, 0xde, 0x78, 0x35, 0xf4, 0x0c, 0x5a,
+	0x7f, 0x8d, 0x46, 0x1d, 0xbf, 0x6a, 0x7a, 0xa5, 0xea, 0x35, 0x38, 0x55, 0x77, 0x50, 0xd7, 0x5f,
+	0x71, 0xbd, 0xbf, 0xca, 0x08, 0xaf, 0x76, 0x69, 0xe9, 0xaf, 0xec, 0xab, 0x3f, 0x01, 0x00, 0x00,
+	0xff, 0xff, 0x1e, 0xd2, 0x35, 0x01, 0x81, 0x05, 0x00, 0x00,
 }

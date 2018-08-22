@@ -19,187 +19,269 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
-	"fmt"
 
-	"github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
 	"github.com/golang/protobuf/proto"
 
+	"github.com/yejiayu/go-cita/common/crypto"
+	"github.com/yejiayu/go-cita/common/hash"
+	"github.com/yejiayu/go-cita/log"
+	"github.com/yejiayu/go-cita/pb"
+
+	"github.com/yejiayu/go-cita/auth/cache"
+	"github.com/yejiayu/go-cita/auth/pool"
 	"github.com/yejiayu/go-cita/database"
 	blockdb "github.com/yejiayu/go-cita/database/block"
 	txdb "github.com/yejiayu/go-cita/database/tx"
-	"github.com/yejiayu/go-cita/log"
-	"github.com/yejiayu/go-cita/types"
+)
+
+var (
+	errBadChainID    = errors.New("bad chain id")
+	errInvalidNonce  = errors.New("invalid nonce")
+	errInvalidSig    = errors.New("invalid sig")
+	errMoreThanQuota = errors.New("more than the quota")
+	errInvalidHashes = errors.New("invalid tx hashes")
 )
 
 type Interface interface {
-	Auth(ctx context.Context, untx *types.UnverifiedTransaction) ([]byte, error)
-	PackTransactions(ctx context.Context, height uint64) ([][]byte, error)
+	AddUnverifyTx(ctx context.Context, untx *pb.UnverifiedTransaction) (hash.Hash, error)
+	EnsureFromPool(ctx context.Context, nodeID uint32, quotaUsed uint64, hashes []hash.Hash) error
+	GetHashFromPool(ctx context.Context, count uint32, quotaLimit uint64) ([]hash.Hash, error)
+	ClearPool(ctx context.Context, height uint64) error
+
+	EnsureHashes(ctx context.Context, nodeID uint32, hashes []hash.Hash) ([]hash.Hash, error)
 }
 
 const (
-	nonceLenLimit        = 128
-	validUntilBlockLimit = 100
-
-	packTransactionsLimit int = 10000
+	nonceLenLimit = 128
 )
 
 type service struct {
-	chainID         uint32
-	blockQuotaLimit uint64
+	chainID    uint32
+	quotaLimit uint64
 
-	cache   *cache
+	cache cache.Interface
+	pool  pool.Interface
+
+	networkClient pb.NetworkClient
+
 	txDB    txdb.Interface
 	blockDB blockdb.Interface
 }
 
-func New(redisURL string, dbFactory database.Factory) (Interface, error) {
-	cache, err := newCache(redisURL)
-	if err != nil {
-		return nil, err
-	}
-
+func New(
+	dbFactory database.Factory,
+	networkClient pb.NetworkClient,
+	cache cache.Interface,
+	pool pool.Interface,
+) Interface {
 	s := &service{
-		cache:   cache,
+		cache: cache,
+		pool:  pool,
+
+		networkClient: networkClient,
+
 		txDB:    dbFactory.TxDB(),
 		blockDB: dbFactory.BlockDB(),
 	}
 
-	if err := s.init(); err != nil {
-		return nil, err
-	}
-	return s, nil
+	return s
 }
 
-func (s *service) init() error {
+func (s *service) AddUnverifyTx(ctx context.Context, untx *pb.UnverifiedTransaction) (hash.Hash, error) {
+	tx := untx.GetTransaction()
+	data, err := proto.Marshal(untx.GetTransaction())
+	if err != nil {
+		return hash.Hash{}, err
+	}
+	txHash := hash.BytesToSha3(data)
+
+	//TODO: black verify
+	pubkey, err := s.verifySig(ctx, txHash, untx.GetSignature(), untx.GetCrypto())
+	if err != nil || pubkey == nil {
+		return hash.Hash{}, errInvalidSig
+	}
+	if err := s.verifyTransaction(ctx, tx); err != nil {
+		return hash.Hash{}, err
+	}
+
+	signedTx := &pb.SignedTransaction{
+		TransactionWithSig: untx,
+		TxHash:             txHash.Bytes(),
+		Signer:             crypto.PubkeyToAddress(*pubkey).Bytes(),
+	}
+
+	if err := s.pool.Add(ctx, signedTx); err != nil {
+		return hash.Hash{}, err
+	}
+
+	go s.networkClient.BroadcastTransaction(ctx, &pb.BroadcastTransactionReq{Untx: untx})
+	return txHash, nil
+}
+
+func (s *service) EnsureFromPool(ctx context.Context, nodeID uint32, quotaUsed uint64, hashes []hash.Hash) error {
+	if len(hashes) == 0 {
+		return nil
+	}
+
+	signedTxs, err := s.pool.Get(ctx, hashes)
+	if err != nil {
+		return err
+	}
+
+	// If these transactions do not exist in the pool, from the target node to pull
+	nonexistentHashMap := make(map[hash.Hash]bool)
+	var quotaCount uint64
+	for i, signedTx := range signedTxs {
+		if signedTx == nil {
+			// The pool return value is the same as the incoming order
+			nonexistentHashMap[hashes[i]] = false
+			continue
+		}
+
+		quotaUsed += signedTx.GetTransactionWithSig().GetTransaction().GetQuota()
+		if quotaCount > quotaUsed {
+			return errMoreThanQuota
+		}
+	}
+
+	res, err := s.networkClient.GetUnverifyTxs(ctx, &pb.GetUnverifyTxsReq{
+		NodeID: nodeID,
+		TxHashes: func() [][]byte {
+			var hashes [][]byte
+			for txHash := range nonexistentHashMap {
+				hashes = append(hashes, txHash.Bytes())
+			}
+			return hashes
+		}(),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Verify these transactions
+	untxs := res.GetTxs()
+	if len(untxs) != len(nonexistentHashMap) {
+		return errInvalidHashes
+	}
+	for _, untx := range untxs {
+		txHash, err := s.AddUnverifyTx(ctx, untx)
+		if err != nil {
+			return err
+		}
+
+		delete(nonexistentHashMap, txHash)
+	}
+	if len(nonexistentHashMap) != 0 {
+		return errInvalidHashes
+	}
 	return nil
 }
 
-func (s *service) Auth(ctx context.Context, untx *types.UnverifiedTransaction) ([]byte, error) {
-	tx := untx.GetTransaction()
-
-	data, err := proto.Marshal(untx.GetTransaction())
+func (s *service) GetHashFromPool(ctx context.Context, count uint32, quotaLimit uint64) ([]hash.Hash, error) {
+	signedTxs, err := s.pool.GetAll(ctx, count)
 	if err != nil {
 		return nil, err
 	}
 
-	h := sha3.New256()
-	h.Write(data)
-	txHash := common.BytesToHash(h.Sum(nil))
+	var quotaCount uint64
+	var invalidHashes []hash.Hash
+	var validHashes []hash.Hash
+	for _, signedTx := range signedTxs {
+		tx := signedTx.GetTransactionWithSig().GetTransaction()
+		txHash := hash.BytesToHash(signedTx.GetTxHash())
 
-	log.Infof("tx hash is", txHash.String())
-	pk, err := s.cache.getPublicKey(ctx, txHash)
-	if err != nil {
-		log.Error(err)
+		// // check valid_until_block
+		// if tx.GetValidUntilBlock() < header.GetHeight() {
+		// 	invalidHashes = append(invalidHashes, txHash)
+		// 	continue
+		// }
+
+		quotaCount += tx.GetQuota()
+		// check quota limit
+		if quotaCount > quotaLimit {
+			// restore quota
+			quotaCount -= tx.GetQuota()
+			continue
+		}
+
+		validHashes = append(validHashes, txHash)
 	}
-	if pk == nil {
-		pk, err = s.verifyTxSig(txHash.Bytes(), untx.GetSignature(), untx.GetCrypto())
+
+	// delete invali tx
+	if _, err := s.pool.Del(ctx, invalidHashes); err != nil {
+		return nil, err
+	}
+
+	return validHashes, nil
+}
+
+func (s *service) ClearPool(ctx context.Context, height uint64) error {
+	body, err := s.blockDB.GetBodyByHeight(ctx, height)
+	if err != nil {
+		return err
+	}
+
+	hashes := make([]hash.Hash, len(body.GetTxHashes()))
+	for i, h := range body.GetTxHashes() {
+		hashes[i] = hash.BytesToHash(h)
+	}
+
+	_, err = s.pool.Del(ctx, hashes)
+	return err
+}
+
+func (s *service) EnsureHashes(ctx context.Context, nodeID uint32, hashes []hash.Hash) ([]hash.Hash, error) {
+	var a []hash.Hash
+	for _, hash := range hashes {
+		exists, err := s.txDB.Exists(ctx, hash)
 		if err != nil {
 			return nil, err
 		}
 
-		s.cache.setPublicKey(ctx, txHash, pk)
+		if !exists {
+			a = append(a, hash)
+		}
 	}
 
-	//TODO: black verify
-
-	if err := s.checkTxParams(ctx, tx, pk, txHash); err != nil {
-		return nil, err
-	}
-
-	signTx := &types.SignedTransaction{
-		TransactionWithSig: untx,
-		TxHash:             txHash.Bytes(),
-		Signer:             ethcrypto.CompressPubkey(pk),
-	}
-
-	if err := s.txDB.AddPool(ctx, signTx); err != nil {
-		return nil, err
-	}
-
-	return txHash.Bytes(), nil
+	return nil, nil
 }
 
-func (s *service) PackTransactions(ctx context.Context, height uint64) ([][]byte, error) {
-	body, err := s.blockDB.GetBodyByHeight(ctx, height)
+func (s *service) verifySig(ctx context.Context, txHash hash.Hash, signature []byte, cryptoType pb.Crypto) (*ecdsa.PublicKey, error) {
+	pubkey, err := s.cache.GetPublicKey(ctx, txHash)
 	if err != nil {
-		return nil, err
+		log.Error(err)
 	}
+	if pubkey == nil {
+		switch cryptoType {
+		case pb.Crypto_SECP:
+			pubkey, err = crypto.SigToPub(txHash, signature)
+			if err != nil {
+				return nil, err
+			}
+		}
 
-	hashes := body.GetTxHashes()
-	if len(hashes) > 0 {
-		if err := s.txDB.UpdateTx(ctx, hashes); err != nil {
+		if err = s.cache.SetPublicKey(ctx, txHash, pubkey); err != nil {
 			return nil, err
 		}
 	}
 
-	return s.txDB.GetTxhashesFromPool(ctx, packTransactionsLimit)
+	return pubkey, err
 }
 
-func (s *service) checkTxParams(ctx context.Context, tx *types.Transaction, signer *ecdsa.PublicKey, txHash common.Hash) error {
-	if tx.ChainId != s.chainID {
-		return errors.New("bad chain id")
+func (s *service) verifyTransaction(ctx context.Context, tx *pb.Transaction) error {
+	if tx.GetChainId() != s.chainID {
+		return errBadChainID
 	}
-
-	if len(tx.Nonce) > nonceLenLimit {
-		return errors.New("invalid nonce")
-	}
-
-	if err := s.checkValidUntilBlock(tx.ValidUntilBlock); err != nil {
-		return err
-	}
-
-	if err := s.checkHistoryTxs(ctx, txHash); err != nil {
-		return err
-	}
-
-	if err := s.checkQuota(tx.Quota, ethcrypto.PubkeyToAddress(*signer)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *service) checkValidUntilBlock(validUntilBlock uint64) error {
-	latestHeader, err := s.blockDB.GetHeaderByLatest(context.Background())
-	if err != nil {
-		return err
-	}
-
-	latestHeight := latestHeader.GetHeight()
-	if validUntilBlock < latestHeight+1 || validUntilBlock >= (latestHeight+1+validUntilBlockLimit) {
-		return errors.New("invalid until block")
-	}
-
-	return nil
-}
-
-func (s *service) checkHistoryTxs(ctx context.Context, hash common.Hash) error {
-	exists, err := s.txDB.Exists(ctx, hash)
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		return errors.New("tx dup")
+	if len(tx.GetNonce()) > nonceLenLimit {
+		return errInvalidNonce
 	}
 	return nil
 }
 
-// TODO: check quota
-func (s *service) checkQuota(quota uint64, address common.Address) error {
-	// if quota > s.blockQuotaLimit {
-	// 	return errors.New("quota not enough")
-	// }
-	return nil
-}
-
-func (s *service) verifyTxSig(hash, signature []byte, crypto types.Crypto) (*ecdsa.PublicKey, error) {
-	switch crypto {
-	case types.Crypto_SECP:
-		return ethcrypto.SigToPub(hash, signature)
-	}
-
-	return nil, fmt.Errorf("%s is Unexpected crypto", crypto.String())
-}
+// // TODO: check quota
+// func (s *service) checkQuota(quota uint64, address common.Address) error {
+// 	// if quota > s.blockQuotaLimit {
+// 	// 	return errors.New("quota not enough")
+// 	// }
+// 	return nil
+// }
