@@ -49,13 +49,13 @@ func New(authClient pb.AuthClient, chainClient pb.ChainClient, networkClient pb.
 
 	privKey, err := cfg.GetPrivKey()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	t.singer = params.NewSinger(privKey)
 
 	wal, err := wal.NewFileWAL("file_wal")
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	t.wal = wal
 
@@ -63,15 +63,15 @@ func New(authClient pb.AuthClient, chainClient pb.ChainClient, networkClient pb.
 		Height: math.MaxUint64,
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	lastHeader := res.GetHeader()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	lastHeaderHash, err := hash.ProtoToSha3(lastHeader)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	t.lastHeader = lastHeader
 	t.lastHeaderHash = lastHeaderHash
@@ -80,11 +80,11 @@ func New(authClient pb.AuthClient, chainClient pb.ChainClient, networkClient pb.
 		Height: lastHeader.GetHeight(),
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	valSet, err := params.NewValidatorSet(nodeListRes.GetNodes())
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	t.valSet = valSet
 
@@ -126,7 +126,7 @@ func (t *tendermint) SetVote(ctx context.Context, vote *pb.Vote, signature []byt
 
 func (t *tendermint) ProposalBlock(height uint64, signer *params.Singer) (*pb.Block, error) {
 	if height-1 != t.lastHeader.GetHeight() {
-		log.Fatal("ProposalBlock, proposal height is %d, but last height is %d", height, t.lastHeader.GetHeight())
+		log.Panic("ProposalBlock, proposal height is %d, but last height is %d", height, t.lastHeader.GetHeight())
 	}
 
 	ctx := context.Background()

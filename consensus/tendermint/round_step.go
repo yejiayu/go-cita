@@ -297,7 +297,7 @@ func (rs *roundStep) enterPropose() {
 		log.Infof("is proposer, height %d、round %d", rs.Height, rs.Round)
 		block, err := rs.extension.ProposalBlock(rs.Height, rs.Singer)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		proposal := &pb.Proposal{
@@ -310,12 +310,12 @@ func (rs *roundStep) enterPropose() {
 
 		signature, err := rs.Singer.SignBlock(block)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		go rs.extension.BroadcastProposal(proposal, signature)
 		if err := rs.SetProposal(proposal, signature); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		return
@@ -478,7 +478,7 @@ func (rs *roundStep) enterCommit() {
 	lockedHash, err := hash.ProtoToSha3(rs.LockedBlock)
 	if err == nil && lockedHash == blockHash {
 		if err = rs.extension.Commit(rs.LockedBlock); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		rs.CommitTime = time.Now()
@@ -489,7 +489,7 @@ func (rs *roundStep) enterCommit() {
 	proposalHash, err := hash.ProtoToSha3(rs.Proposal.GetBlock())
 	if err == nil && proposalHash == blockHash {
 		if err = rs.extension.Commit(rs.Proposal.GetBlock()); err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		rs.CommitTime = time.Now()

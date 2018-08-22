@@ -33,7 +33,7 @@ func main() {
 
 	server, err := consensus.New()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	server.Run()

@@ -105,7 +105,7 @@ func (mock *mockExtension) GetValidatorSet(height uint64) (*params.ValidatorSet,
 func buildVote(height, round uint64, vt pb.VoteType, block *pb.Block, signer *params.Singer) (*pb.Vote, []byte) {
 	blockHash, err := hash.ProtoToSha3(block)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	vote := &pb.Vote{
@@ -118,7 +118,7 @@ func buildVote(height, round uint64, vt pb.VoteType, block *pb.Block, signer *pa
 
 	signature, err := signer.SignVote(vote)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	return vote, signature

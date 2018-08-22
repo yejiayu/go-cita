@@ -40,7 +40,7 @@ func main() {
 	cfg := config{}
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	log.Infof("chain config %+v", cfg)
@@ -54,10 +54,10 @@ func main() {
 
 	dbFactory, err := database.NewFactory(cfg.DbURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := chain.New(cfg.Port, dbFactory); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
