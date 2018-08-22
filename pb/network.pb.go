@@ -35,7 +35,7 @@ func (m *BroadcastProposalReq) Reset()         { *m = BroadcastProposalReq{} }
 func (m *BroadcastProposalReq) String() string { return proto.CompactTextString(m) }
 func (*BroadcastProposalReq) ProtoMessage()    {}
 func (*BroadcastProposalReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_network_ceef2a8ee04932c1, []int{0}
+	return fileDescriptor_network_3e157403f9300bd0, []int{0}
 }
 func (m *BroadcastProposalReq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BroadcastProposalReq.Unmarshal(m, b)
@@ -81,7 +81,7 @@ func (m *BroadcastVotelReq) Reset()         { *m = BroadcastVotelReq{} }
 func (m *BroadcastVotelReq) String() string { return proto.CompactTextString(m) }
 func (*BroadcastVotelReq) ProtoMessage()    {}
 func (*BroadcastVotelReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_network_ceef2a8ee04932c1, []int{1}
+	return fileDescriptor_network_3e157403f9300bd0, []int{1}
 }
 func (m *BroadcastVotelReq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BroadcastVotelReq.Unmarshal(m, b)
@@ -115,9 +115,134 @@ func (m *BroadcastVotelReq) GetSignature() []byte {
 	return nil
 }
 
+type BroadcastTransactionReq struct {
+	Untx                 *UnverifiedTransaction `protobuf:"bytes,1,opt,name=untx" json:"untx,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+	XXX_unrecognized     []byte                 `json:"-"`
+	XXX_sizecache        int32                  `json:"-"`
+}
+
+func (m *BroadcastTransactionReq) Reset()         { *m = BroadcastTransactionReq{} }
+func (m *BroadcastTransactionReq) String() string { return proto.CompactTextString(m) }
+func (*BroadcastTransactionReq) ProtoMessage()    {}
+func (*BroadcastTransactionReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_network_3e157403f9300bd0, []int{2}
+}
+func (m *BroadcastTransactionReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BroadcastTransactionReq.Unmarshal(m, b)
+}
+func (m *BroadcastTransactionReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BroadcastTransactionReq.Marshal(b, m, deterministic)
+}
+func (dst *BroadcastTransactionReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BroadcastTransactionReq.Merge(dst, src)
+}
+func (m *BroadcastTransactionReq) XXX_Size() int {
+	return xxx_messageInfo_BroadcastTransactionReq.Size(m)
+}
+func (m *BroadcastTransactionReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_BroadcastTransactionReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BroadcastTransactionReq proto.InternalMessageInfo
+
+func (m *BroadcastTransactionReq) GetUntx() *UnverifiedTransaction {
+	if m != nil {
+		return m.Untx
+	}
+	return nil
+}
+
+type GetUnverifyTxsReq struct {
+	NodeID               uint32   `protobuf:"varint,1,opt,name=nodeID" json:"nodeID,omitempty"`
+	TxHashes             [][]byte `protobuf:"bytes,2,rep,name=tx_hashes,json=txHashes,proto3" json:"tx_hashes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetUnverifyTxsReq) Reset()         { *m = GetUnverifyTxsReq{} }
+func (m *GetUnverifyTxsReq) String() string { return proto.CompactTextString(m) }
+func (*GetUnverifyTxsReq) ProtoMessage()    {}
+func (*GetUnverifyTxsReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_network_3e157403f9300bd0, []int{3}
+}
+func (m *GetUnverifyTxsReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetUnverifyTxsReq.Unmarshal(m, b)
+}
+func (m *GetUnverifyTxsReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetUnverifyTxsReq.Marshal(b, m, deterministic)
+}
+func (dst *GetUnverifyTxsReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetUnverifyTxsReq.Merge(dst, src)
+}
+func (m *GetUnverifyTxsReq) XXX_Size() int {
+	return xxx_messageInfo_GetUnverifyTxsReq.Size(m)
+}
+func (m *GetUnverifyTxsReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetUnverifyTxsReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetUnverifyTxsReq proto.InternalMessageInfo
+
+func (m *GetUnverifyTxsReq) GetNodeID() uint32 {
+	if m != nil {
+		return m.NodeID
+	}
+	return 0
+}
+
+func (m *GetUnverifyTxsReq) GetTxHashes() [][]byte {
+	if m != nil {
+		return m.TxHashes
+	}
+	return nil
+}
+
+type GetUnverifyTxsRes struct {
+	Txs                  []*UnverifiedTransaction `protobuf:"bytes,1,rep,name=txs" json:"txs,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
+	XXX_unrecognized     []byte                   `json:"-"`
+	XXX_sizecache        int32                    `json:"-"`
+}
+
+func (m *GetUnverifyTxsRes) Reset()         { *m = GetUnverifyTxsRes{} }
+func (m *GetUnverifyTxsRes) String() string { return proto.CompactTextString(m) }
+func (*GetUnverifyTxsRes) ProtoMessage()    {}
+func (*GetUnverifyTxsRes) Descriptor() ([]byte, []int) {
+	return fileDescriptor_network_3e157403f9300bd0, []int{4}
+}
+func (m *GetUnverifyTxsRes) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetUnverifyTxsRes.Unmarshal(m, b)
+}
+func (m *GetUnverifyTxsRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetUnverifyTxsRes.Marshal(b, m, deterministic)
+}
+func (dst *GetUnverifyTxsRes) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetUnverifyTxsRes.Merge(dst, src)
+}
+func (m *GetUnverifyTxsRes) XXX_Size() int {
+	return xxx_messageInfo_GetUnverifyTxsRes.Size(m)
+}
+func (m *GetUnverifyTxsRes) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetUnverifyTxsRes.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetUnverifyTxsRes proto.InternalMessageInfo
+
+func (m *GetUnverifyTxsRes) GetTxs() []*UnverifiedTransaction {
+	if m != nil {
+		return m.Txs
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*BroadcastProposalReq)(nil), "BroadcastProposalReq")
 	proto.RegisterType((*BroadcastVotelReq)(nil), "BroadcastVotelReq")
+	proto.RegisterType((*BroadcastTransactionReq)(nil), "BroadcastTransactionReq")
+	proto.RegisterType((*GetUnverifyTxsReq)(nil), "GetUnverifyTxsReq")
+	proto.RegisterType((*GetUnverifyTxsRes)(nil), "GetUnverifyTxsRes")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -134,6 +259,8 @@ const _ = grpc.SupportPackageIsVersion4
 type NetworkClient interface {
 	BroadcastProposal(ctx context.Context, in *BroadcastProposalReq, opts ...grpc.CallOption) (*Empty, error)
 	BroadcastVote(ctx context.Context, in *BroadcastVotelReq, opts ...grpc.CallOption) (*Empty, error)
+	BroadcastTransaction(ctx context.Context, in *BroadcastTransactionReq, opts ...grpc.CallOption) (*Empty, error)
+	GetUnverifyTxs(ctx context.Context, in *GetUnverifyTxsReq, opts ...grpc.CallOption) (*GetUnverifyTxsRes, error)
 }
 
 type networkClient struct {
@@ -162,10 +289,30 @@ func (c *networkClient) BroadcastVote(ctx context.Context, in *BroadcastVotelReq
 	return out, nil
 }
 
+func (c *networkClient) BroadcastTransaction(ctx context.Context, in *BroadcastTransactionReq, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/Network/BroadcastTransaction", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkClient) GetUnverifyTxs(ctx context.Context, in *GetUnverifyTxsReq, opts ...grpc.CallOption) (*GetUnverifyTxsRes, error) {
+	out := new(GetUnverifyTxsRes)
+	err := c.cc.Invoke(ctx, "/Network/GetUnverifyTxs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NetworkServer is the server API for Network service.
 type NetworkServer interface {
 	BroadcastProposal(context.Context, *BroadcastProposalReq) (*Empty, error)
 	BroadcastVote(context.Context, *BroadcastVotelReq) (*Empty, error)
+	BroadcastTransaction(context.Context, *BroadcastTransactionReq) (*Empty, error)
+	GetUnverifyTxs(context.Context, *GetUnverifyTxsReq) (*GetUnverifyTxsRes, error)
 }
 
 func RegisterNetworkServer(s *grpc.Server, srv NetworkServer) {
@@ -208,6 +355,42 @@ func _Network_BroadcastVote_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Network_BroadcastTransaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastTransactionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).BroadcastTransaction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Network/BroadcastTransaction",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).BroadcastTransaction(ctx, req.(*BroadcastTransactionReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Network_GetUnverifyTxs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUnverifyTxsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServer).GetUnverifyTxs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Network/GetUnverifyTxs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServer).GetUnverifyTxs(ctx, req.(*GetUnverifyTxsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Network_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "Network",
 	HandlerType: (*NetworkServer)(nil),
@@ -220,26 +403,43 @@ var _Network_serviceDesc = grpc.ServiceDesc{
 			MethodName: "BroadcastVote",
 			Handler:    _Network_BroadcastVote_Handler,
 		},
+		{
+			MethodName: "BroadcastTransaction",
+			Handler:    _Network_BroadcastTransaction_Handler,
+		},
+		{
+			MethodName: "GetUnverifyTxs",
+			Handler:    _Network_GetUnverifyTxs_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "network.proto",
 }
 
-func init() { proto.RegisterFile("network.proto", fileDescriptor_network_ceef2a8ee04932c1) }
+func init() { proto.RegisterFile("network.proto", fileDescriptor_network_3e157403f9300bd0) }
 
-var fileDescriptor_network_ceef2a8ee04932c1 = []byte{
-	// 205 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcd, 0x4b, 0x2d, 0x29,
-	0xcf, 0x2f, 0xca, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x97, 0xe2, 0x4f, 0xce, 0xcf, 0x2b, 0x4e,
-	0xcd, 0x2b, 0x2e, 0x2d, 0x86, 0x0a, 0xf0, 0x24, 0xe7, 0xe7, 0xe6, 0xe6, 0xe7, 0x41, 0x78, 0x4a,
-	0xd1, 0x5c, 0x22, 0x4e, 0x45, 0xf9, 0x89, 0x29, 0xc9, 0x89, 0xc5, 0x25, 0x01, 0x45, 0xf9, 0x05,
-	0xf9, 0xc5, 0x89, 0x39, 0x41, 0xa9, 0x85, 0x42, 0xaa, 0x5c, 0x1c, 0x05, 0x50, 0xae, 0x04, 0xa3,
-	0x02, 0xa3, 0x06, 0xb7, 0x11, 0xa7, 0x1e, 0x5c, 0x1e, 0x2e, 0x25, 0x24, 0xc3, 0xc5, 0x59, 0x9c,
-	0x99, 0x9e, 0x97, 0x58, 0x52, 0x5a, 0x94, 0x2a, 0xc1, 0xa4, 0xc0, 0xa8, 0xc1, 0x13, 0x84, 0x10,
-	0x50, 0xf2, 0xe1, 0x12, 0x84, 0x1b, 0x1e, 0x96, 0x5f, 0x92, 0x0a, 0x36, 0x59, 0x92, 0x8b, 0xa5,
-	0x2c, 0xbf, 0x24, 0x15, 0x6a, 0x2a, 0xab, 0x1e, 0x48, 0x22, 0x08, 0x2c, 0x84, 0xdf, 0x34, 0xa3,
-	0x3c, 0x2e, 0x76, 0x3f, 0x88, 0xd7, 0x84, 0x4c, 0x90, 0x0c, 0x86, 0xb9, 0x4a, 0x48, 0x54, 0x0f,
-	0x9b, 0x4f, 0xa4, 0xd8, 0xf4, 0x5c, 0x73, 0x0b, 0x4a, 0x2a, 0x95, 0x18, 0x84, 0x74, 0xb9, 0x78,
-	0x51, 0x9c, 0x23, 0x24, 0xa4, 0x87, 0xe1, 0x3c, 0x84, 0xf2, 0x24, 0x36, 0x70, 0x08, 0x19, 0x03,
-	0x02, 0x00, 0x00, 0xff, 0xff, 0x22, 0x4b, 0xe1, 0x8e, 0x51, 0x01, 0x00, 0x00,
+var fileDescriptor_network_3e157403f9300bd0 = []byte{
+	// 349 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x92, 0x4f, 0x4b, 0xeb, 0x40,
+	0x14, 0xc5, 0x9b, 0xb6, 0xaf, 0xaf, 0xbd, 0xaf, 0x7d, 0xd2, 0x41, 0x6b, 0xac, 0x2e, 0x42, 0x40,
+	0x08, 0x82, 0xb3, 0xa8, 0xae, 0x04, 0x37, 0x62, 0xb1, 0x82, 0x88, 0x84, 0xea, 0xc6, 0x85, 0x8c,
+	0xe9, 0x68, 0x83, 0x76, 0x26, 0xce, 0xdc, 0xd4, 0xf4, 0x0b, 0xfb, 0x39, 0x24, 0xe9, 0x18, 0x53,
+	0xe2, 0x9f, 0x5d, 0xce, 0xb9, 0x27, 0x3f, 0x6e, 0xce, 0x0d, 0x74, 0x04, 0xc7, 0x57, 0xa9, 0x9e,
+	0x68, 0xa4, 0x24, 0xca, 0x3e, 0xb0, 0x18, 0xa7, 0xe6, 0x79, 0x2d, 0x90, 0x42, 0x73, 0xa1, 0x63,
+	0x6d, 0x8c, 0x76, 0x20, 0x67, 0x33, 0x29, 0x96, 0xca, 0xbd, 0x85, 0xf5, 0x13, 0x25, 0xd9, 0x24,
+	0x60, 0x1a, 0xaf, 0x94, 0x8c, 0xa4, 0x66, 0xcf, 0x3e, 0x7f, 0x21, 0xbb, 0xd0, 0x8c, 0x8c, 0xb4,
+	0x2d, 0xc7, 0xf2, 0xfe, 0x0d, 0x5a, 0x34, 0x9f, 0xe7, 0x23, 0xb2, 0x03, 0x2d, 0x1d, 0x3e, 0x0a,
+	0x86, 0xb1, 0xe2, 0x76, 0xd5, 0xb1, 0xbc, 0xb6, 0xff, 0x69, 0xb8, 0x17, 0xd0, 0xcd, 0xe1, 0x37,
+	0x12, 0x79, 0x46, 0xde, 0x82, 0xfa, 0x5c, 0x22, 0x37, 0xd4, 0x3f, 0x34, 0x1d, 0xf8, 0x99, 0xf5,
+	0x0b, 0x6d, 0x08, 0x9b, 0x39, 0x6d, 0xac, 0x98, 0xd0, 0x2c, 0xc0, 0x50, 0x8a, 0x94, 0xb9, 0x07,
+	0xf5, 0x58, 0x60, 0x62, 0x98, 0x3d, 0x7a, 0x2d, 0xe6, 0x5c, 0x85, 0x0f, 0x21, 0x9f, 0x14, 0x83,
+	0x59, 0xc6, 0x1d, 0x41, 0xf7, 0x8c, 0xa3, 0x49, 0x2c, 0xc6, 0x89, 0x4e, 0x01, 0x3d, 0x68, 0x08,
+	0x39, 0xe1, 0xe7, 0xa7, 0x19, 0xa2, 0xe3, 0x1b, 0x45, 0xb6, 0xa1, 0x85, 0xc9, 0xdd, 0x94, 0xe9,
+	0x29, 0xd7, 0x76, 0xd5, 0xa9, 0x79, 0x6d, 0xbf, 0x89, 0xc9, 0x28, 0xd3, 0xee, 0x71, 0x99, 0xa4,
+	0x89, 0x07, 0x35, 0x4c, 0xb4, 0x6d, 0x39, 0xb5, 0x1f, 0x36, 0x49, 0x23, 0x83, 0x37, 0x0b, 0xfe,
+	0x5e, 0x2e, 0xef, 0x46, 0x0e, 0x0b, 0x4d, 0x7d, 0xd4, 0x4c, 0x36, 0xe8, 0x57, 0xa7, 0xe9, 0x37,
+	0xe8, 0x70, 0x16, 0xe1, 0xc2, 0xad, 0x90, 0x7d, 0xe8, 0xac, 0xf4, 0x4b, 0x08, 0x2d, 0xf5, 0x5d,
+	0x88, 0x1f, 0x15, 0x6e, 0x5d, 0xd8, 0x86, 0xd8, 0xf4, 0x9b, 0x5e, 0x57, 0xde, 0xfd, 0xbf, 0xfa,
+	0xad, 0x84, 0xd0, 0x52, 0x8d, 0xfd, 0xb2, 0xa7, 0xdd, 0xca, 0x7d, 0x23, 0xfb, 0xd5, 0x0e, 0xde,
+	0x03, 0x00, 0x00, 0xff, 0xff, 0x60, 0xc0, 0xea, 0xa5, 0xa6, 0x02, 0x00, 0x00,
 }

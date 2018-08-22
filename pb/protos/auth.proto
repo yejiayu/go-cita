@@ -30,11 +30,11 @@ message SignedTransaction {
   bytes signer = 3; //public key
 }
 
-message SendTransactionReq {
+message AddUnverifyTxReq {
   UnverifiedTransaction untx = 1;
 }
 
-message SendTransactionRes {
+message AddUnverifyTxRes {
   bytes tx_hash = 1;
 }
 
@@ -47,14 +47,36 @@ message GetTxFromPoolReq {
   uint32 tx_count = 2;
 }
 
+message EnsureFromPoolReq {
+  uint32 node_id = 1;
+  uint64 quota_used = 2;
+  repeated bytes tx_hashes = 3;
+}
+
 message GetTxFromPoolRes {
   repeated bytes tx_hashes = 1;
   uint64 quota_used = 2;
 }
 
-service Auth {
-  rpc SendTransaction (SendTransactionReq) returns (SendTransactionRes) {}
+message ClearPoolReq {
+  uint64 height = 1;
+}
 
+message EnsureHashesReq {
+  uint32 node_id = 1;
+  repeated bytes tx_hashes = 2;
+}
+
+message EnsureHashesRes {
+  repeated bytes tx_hashes = 1;
+}
+
+
+service Auth {
+  rpc AddUnverifyTx (AddUnverifyTxReq) returns (AddUnverifyTxRes) {}
   rpc GetTxFromPool (GetTxFromPoolReq) returns (GetTxFromPoolRes) {}
-  rpc VerifyTxHashes (VerifyTxHashesReq) returns (Empty) {}
+  rpc EnsureFromPool (EnsureFromPoolReq) returns (Empty) {}
+  rpc ClearPool (ClearPoolReq) returns (Empty) {}
+
+  rpc EnsureHashes (EnsureHashesReq) returns (EnsureHashesRes) {}
 }

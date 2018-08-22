@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "auth.proto";
 import "consensus.proto";
 import "common.proto";
 
@@ -13,7 +14,23 @@ message BroadcastVotelReq {
   bytes signature = 2;
 }
 
+message BroadcastTransactionReq {
+  UnverifiedTransaction untx = 1;
+}
+
+message GetUnverifyTxsReq {
+  uint32 node_id= 1;
+  repeated bytes tx_hashes = 2;
+}
+
+message GetUnverifyTxsRes {
+  repeated UnverifiedTransaction txs = 1;
+}
+
 service Network {
   rpc BroadcastProposal(BroadcastProposalReq) returns (Empty) {}
   rpc BroadcastVote(BroadcastVotelReq) returns (Empty) {}
+  rpc BroadcastTransaction(BroadcastTransactionReq) returns (Empty) {}
+
+  rpc GetUnverifyTxs(GetUnverifyTxsReq) returns (GetUnverifyTxsRes) {}
 }
