@@ -26,9 +26,9 @@ import (
 )
 
 var (
-	blockHeaderTable = []byte("block-header-")
-	blockBodyTable   = []byte("block-body-")
-	blockLatestTable = []byte("block-latest")
+	nsBlockHeader  = "block.header"
+	nsBlockBody    = "block.body"
+	nsLatestHeight = "block.latest.height"
 )
 
 type Interface interface {
@@ -48,7 +48,7 @@ type blockDB struct {
 }
 
 func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*pb.BlockHeader, error) {
-	data, err := db.raw.Get(ctx, blockHeaderTable, uint64ToBytes(height))
+	data, err := db.raw.Get(ctx, nsBlockHeader, uint64ToBytes(height))
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*pb.Bl
 }
 
 func (db *blockDB) GetBodyByHeight(ctx context.Context, height uint64) (*pb.BlockBody, error) {
-	data, err := db.raw.Get(ctx, blockBodyTable, uint64ToBytes(height))
+	data, err := db.raw.Get(ctx, nsBlockBody, uint64ToBytes(height))
 	if err != nil {
 		return nil, err
 	}
@@ -90,15 +90,7 @@ func (db *blockDB) AddBlock(ctx context.Context, b *pb.Block) error {
 	if err != nil {
 		return err
 	}
-
-	// tx, err := db.raw.BeginTransaction(ctx)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// log.Info("put block header")
-	if err = db.raw.Put(ctx, blockHeaderTable, uint64ToBytes(header.GetHeight()), hData); err != nil {
-		// tx.Rollback()
+	if err = db.raw.Put(ctx, nsBlockHeader, uint64ToBytes(header.GetHeight()), hData); err != nil {
 		return err
 	}
 
@@ -106,30 +98,21 @@ func (db *blockDB) AddBlock(ctx context.Context, b *pb.Block) error {
 	if body != nil && len(body.GetTxHashes()) > 0 {
 		bData, err := proto.Marshal(body)
 		if err != nil {
-			// tx.Rollback()
 			return err
 		}
-		if err := db.raw.Put(ctx, blockBodyTable, uint64ToBytes(header.GetHeight()), bData); err != nil {
-			// tx.Rollback()
+		if err := db.raw.Put(ctx, nsBlockBody, uint64ToBytes(header.GetHeight()), bData); err != nil {
 			return err
 		}
 	}
 
-	if err := db.raw.Put(ctx, blockLatestTable, nil, uint64ToBytes(header.GetHeight())); err != nil {
-		// tx.Rollback()
+	if err := db.raw.Put(ctx, nsLatestHeight, []byte(""), uint64ToBytes(header.GetHeight())); err != nil {
 		return err
 	}
 	return nil
-	// err = tx.Commit()
-	// if err != nil {
-	// 	log.Errorf("add block error %s", err)
-	// }
-	// log.Info("add block commited")
-	// return err
 }
 
 func (db *blockDB) getLatest(ctx context.Context) (uint64, error) {
-	data, err := db.raw.Get(ctx, blockLatestTable, nil)
+	data, err := db.raw.Get(ctx, nsLatestHeight, []byte(""))
 	if err != nil {
 		return 0, err
 	}
