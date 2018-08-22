@@ -1,6 +1,7 @@
 package log
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -80,6 +81,7 @@ func Fatal(args ...interface{}) {
 // including a stack trace of all running goroutines, then calls os.Exit(255).
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Fatalf(format string, args ...interface{}) {
+	logging.WithError(errors.New(""))
 	logging.Fatalf(format, args...)
 }
 
@@ -91,4 +93,14 @@ func Debug(args ...interface{}) {
 // Debugf logs a message at level Debug on the standard logger.
 func Debugf(format string, args ...interface{}) {
 	logging.Debugf(format, args...)
+}
+
+// Panic logs a message at level Panic on the standard logger.
+func Panic(args ...interface{}) {
+	logging.Panic(args)
+}
+
+// Panicf logs a message at level Panic on the standard logger.
+func Panicf(format string, args ...interface{}) {
+	logging.Panicf(format, args)
 }
