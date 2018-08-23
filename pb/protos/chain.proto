@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "common.proto";
+
 enum ProofType {
   AuthorityRound = 0;
   Raft = 1;
@@ -30,21 +32,9 @@ message BlockHeader {
   bytes proposer = 10;
 }
 
-message Status {
-  bytes hash = 1;
-  uint64 height = 2;
-}
-
 message AccountGasLimit {
   uint64 common_gas_limit = 1;
   map<string,uint64> specific_gas_limit = 2;
-}
-
-message RichStatus {
-  bytes hash = 1;
-  uint64 height = 2;
-  repeated bytes nodes = 3;
-  uint64 interval = 4;
 }
 
 // data precompile API
@@ -52,26 +42,20 @@ message BlockBody {
   repeated bytes tx_hashes = 1;
 }
 
-message BlockWithProof {
-  Block blk = 1;
-  Proof proof = 2;
-}
-
 message NewBlockReq {
   Block block = 1;
-  Proof proof = 2;
 }
 
 message NewBlockRes {
   uint64 height = 1;
 }
 
-message NodeListReq {
+message GetValidatorsReq {
   uint64 height = 1;
 }
 
-message NodeListRes {
-  repeated bytes nodes = 3;
+message GetValidatorsRes {
+  repeated bytes vals = 3;
 }
 
 message GetBlockHeaderReq {
@@ -83,8 +67,8 @@ message GetBlockHeaderRes {
 }
 
 service Chain {
-  rpc NewBlock (NewBlockReq) returns (NewBlockRes) {}
-  rpc NodeList(NodeListReq) returns (NodeListRes) {}
+  rpc NewBlock (NewBlockReq) returns (Empty) {}
+  rpc GetValidators(GetValidatorsReq) returns (GetValidatorsRes) {}
 
   rpc GetBlockHeader(GetBlockHeaderReq) returns (GetBlockHeaderRes) {}
 }
