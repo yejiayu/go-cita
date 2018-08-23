@@ -2,59 +2,80 @@ package chain
 
 import (
 	"context"
+	"math"
 	"net"
 
 	"google.golang.org/grpc"
 
-	"github.com/yejiayu/go-cita/chain/service"
+	"github.com/yejiayu/go-cita/common/crypto"
 	"github.com/yejiayu/go-cita/database"
-	blockdb "github.com/yejiayu/go-cita/database/block"
+	"github.com/yejiayu/go-cita/database/block"
 	"github.com/yejiayu/go-cita/log"
-	"github.com/yejiayu/go-cita/types"
+	"github.com/yejiayu/go-cita/pb"
+
+	cfg "github.com/yejiayu/go-cita/config/chain"
 )
 
-func New(port string, dbFactory database.Factory) error {
-	s := grpc.NewServer()
+type Server interface {
+	Run()
+}
 
-	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
-	if err != nil {
-		return err
-	}
-
-	svc, err := service.New(dbFactory)
-	if err != nil {
-		return err
-	}
-
-	types.RegisterChainServer(s, &server{
+func New(dbFactory database.Factory) Server {
+	return &server{
 		blockDB: dbFactory.BlockDB(),
-		svc:     svc,
-	})
-
-	log.Infof("The chain server listens on port %s", port)
-	return s.Serve(lis)
+		grpcS:   grpc.NewServer(),
+	}
 }
 
 type server struct {
-	blockDB blockdb.Interface
-	svc     service.Interface
+	blockDB block.Interface
+	grpcS   *grpc.Server
 }
 
-func (s *server) NewBlock(ctx context.Context, req *types.NewBlockReq) (*types.NewBlockRes, error) {
-	block := req.GetBlock()
-
-	if err := s.blockDB.AddBlock(ctx, block); err != nil {
-		return nil, err
+func (s *server) Run() {
+	port := cfg.GetPort()
+	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
+	if err != nil {
+		log.Panic(err)
 	}
 
-	return &types.NewBlockRes{Height: block.GetHeader().GetHeight()}, nil
+	log.Infof("The chain server listens on port %s", port)
+	pb.RegisterChainServer(s.grpcS, s)
+	if err := s.grpcS.Serve(lis); err != nil {
+		log.Panic(err)
+	}
 }
 
-func (s *server) LatestHeight(ctx context.Context, req *types.LatestHeightReq) (*types.LatestHeightRes, error) {
-	height, err := s.svc.GetLatestHeight(ctx)
+func (s *server) NewBlock(ctx context.Context, req *pb.NewBlockReq) (*pb.NewBlockRes, error) {
+	if err := s.blockDB.AddBlock(ctx, req.GetBlock()); err != nil {
+		return nil, err
+	}
+	return &pb.NewBlockRes{Height: req.GetBlock().GetHeader().GetHeight()}, nil
+}
+
+func (s *server) NodeList(ctx context.Context, req *pb.NodeListReq) (*pb.NodeListRes, error) {
+	priv1, err := crypto.HexToECDSA("add757cf60afa08fc54376db9cd1f313f2d20d907f3ac984f227ea0835fc0111")
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.LatestHeightRes{Height: height}, nil
+	return &pb.NodeListRes{
+		Nodes: [][]byte{crypto.CompressPubkey(&priv1.PublicKey)},
+	}, nil
+}
+
+func (s *server) GetBlockHeader(ctx context.Context, req *pb.GetBlockHeaderReq) (*pb.GetBlockHeaderRes, error) {
+	if req.GetHeight() == math.MaxUint64 {
+		header, err := s.blockDB.GetHeaderByLatest(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &pb.GetBlockHeaderRes{Header: header}, nil
+	}
+
+	header, err := s.blockDB.GetHeaderByHeight(ctx, req.GetHeight())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetBlockHeaderRes{Header: header}, nil
 }
