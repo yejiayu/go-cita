@@ -7,12 +7,12 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/yejiayu/go-cita/common/crypto"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 
+	"github.com/yejiayu/go-cita/chain/service"
 	cfg "github.com/yejiayu/go-cita/config/chain"
 )
 
@@ -22,14 +22,20 @@ type Server interface {
 
 func New(dbFactory database.Factory) Server {
 	return &server{
+		grpcS: grpc.NewServer(),
+
 		blockDB: dbFactory.BlockDB(),
-		grpcS:   grpc.NewServer(),
+
+		svc: service.New(dbFactory),
 	}
 }
 
 type server struct {
+	grpcS *grpc.Server
+
 	blockDB block.Interface
-	grpcS   *grpc.Server
+
+	svc service.Interface
 }
 
 func (s *server) Run() {
@@ -46,22 +52,18 @@ func (s *server) Run() {
 	}
 }
 
-func (s *server) NewBlock(ctx context.Context, req *pb.NewBlockReq) (*pb.NewBlockRes, error) {
-	if err := s.blockDB.AddBlock(ctx, req.GetBlock()); err != nil {
-		return nil, err
-	}
-	return &pb.NewBlockRes{Height: req.GetBlock().GetHeader().GetHeight()}, nil
+func (s *server) NewBlock(ctx context.Context, req *pb.NewBlockReq) (*pb.Empty, error) {
+	err := s.svc.NewBlock(ctx, req.GetBlock())
+	return &pb.Empty{}, err
 }
 
-func (s *server) NodeList(ctx context.Context, req *pb.NodeListReq) (*pb.NodeListRes, error) {
-	priv1, err := crypto.HexToECDSA("add757cf60afa08fc54376db9cd1f313f2d20d907f3ac984f227ea0835fc0111")
+func (s *server) GetValidators(ctx context.Context, req *pb.GetValidatorsReq) (*pb.GetValidatorsRes, error) {
+	vals, err := s.svc.GetValidators(ctx, req.GetHeight())
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.NodeListRes{
-		Nodes: [][]byte{crypto.CompressPubkey(&priv1.PublicKey)},
-	}, nil
+	return &pb.GetValidatorsRes{Vals: vals}, nil
 }
 
 func (s *server) GetBlockHeader(ctx context.Context, req *pb.GetBlockHeaderReq) (*pb.GetBlockHeaderRes, error) {
