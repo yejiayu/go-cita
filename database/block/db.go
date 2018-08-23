@@ -80,6 +80,9 @@ func (db *blockDB) GetHeaderByLatest(ctx context.Context) (*pb.BlockHeader, erro
 	if err != nil {
 		return nil, err
 	}
+	if height == 0 {
+		return nil, nil
+	}
 
 	return db.GetHeaderByHeight(ctx, height)
 }
@@ -117,6 +120,9 @@ func (db *blockDB) getLatest(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 
+	if data == nil {
+		return 0, nil
+	}
 	return bytesToUint64(data), nil
 }
 
