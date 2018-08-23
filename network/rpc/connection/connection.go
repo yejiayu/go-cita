@@ -13,27 +13,42 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package server
+package connection
 
 import (
-	"fmt"
-	"io/ioutil"
 	"net"
-	"testing"
+
+	"github.com/yejiayu/go-cita/network/protocol"
 )
 
-func TestServer(t *testing.T) {
-	netMsgStart := 100 & 0xffffffff00000000
-	fmt.Println(netMsgStart)
-	conn, err := net.Dial("TCP", "47.75.129.215:4001")
+func newConnection(id uint32, address string) (*connection, error) {
+	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
-	data, err := ioutil.ReadAll(conn)
-	if err != nil {
-		t.Fatal(err)
-	}
+	return &connection{
+		id:      id,
+		address: address,
 
-	fmt.Println(string(data))
+		conn:  conn,
+		codec: protocol.NewCodec(),
+	}, nil
+}
+
+type connection struct {
+	id      uint32
+	address string
+
+	conn  net.Conn
+	codec protocol.Codec
+}
+
+func (c *connection) send(key string, data []byte) error {
+	_, err := c.conn.Write(data)
+	return err
+}
+
+func (c *connection) close() error {
+	return c.conn.Close()
 }

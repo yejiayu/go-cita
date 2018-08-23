@@ -18,10 +18,6 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
-
-	"github.com/golang/protobuf/proto"
-
-	"github.com/yejiayu/go-cita/types"
 )
 
 // Message for communication between microservices or nodes.
@@ -50,6 +46,12 @@ import (
 // So we use first 8 bytes to store `OperateType` and `Origin`.
 // And we uncompress and deserialize the payloads only before when we use the contents of them.
 
+const (
+	KeyBroadcastProposal    = "BroadcastProposal"
+	KeyBroadcastVote        = "BroadcastVote"
+	KeyBroadcastTransaction = "BroadcastTransaction"
+)
+
 type OpType uint8
 
 const (
@@ -63,9 +65,6 @@ type Message interface {
 	Origin() uint32
 	Payload() []byte
 	Raw() []byte
-
-	UnmarshalStatus() (*types.Status, error)
-	UnmarshalSyncResponse() (*types.SyncResponse, error)
 }
 
 func NewMessage(opType OpType, origin uint32, data []byte) Message {
@@ -125,24 +124,4 @@ func (m *message) Raw() []byte {
 
 func (m *message) Payload() []byte {
 	return m.payload
-}
-
-func (m *message) UnmarshalStatus() (*types.Status, error) {
-	var status types.Status
-
-	if err := proto.Unmarshal(m.Payload(), &status); err != nil {
-		return nil, err
-	}
-
-	return &status, nil
-}
-
-func (m *message) UnmarshalSyncResponse() (*types.SyncResponse, error) {
-	var res types.SyncResponse
-
-	if err := proto.Unmarshal(m.Payload(), &res); err != nil {
-		return nil, err
-	}
-
-	return &res, nil
 }

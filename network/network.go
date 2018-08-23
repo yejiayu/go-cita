@@ -16,81 +16,33 @@
 package network
 
 import (
-	"github.com/streadway/amqp"
+	"github.com/yejiayu/go-cita/pb"
 
-	networkConfig "github.com/yejiayu/go-cita/config/network"
-	"github.com/yejiayu/go-cita/mq"
-	"github.com/yejiayu/go-cita/network/connection"
-	"github.com/yejiayu/go-cita/network/server"
+	"github.com/yejiayu/go-cita/network/external"
+	"github.com/yejiayu/go-cita/network/rpc"
 )
 
 type Interface interface {
-	Run(quit chan<- error)
+	Run()
 }
 
-func New(config networkConfig.Config, queue mq.Queue) (Interface, error) {
-	serve, err := server.New(config.Port)
-	if err != nil {
-		return nil, err
-	}
-
-	cm := connection.NewManager(config)
+func New(
+	consensusClient pb.ConsensusClient,
+	authClient pb.AuthClient,
+	chainClient pb.ChainClient,
+) Interface {
 	return &network{
-		config:      config,
-		connManager: cm,
-		server:      serve,
-		syncHandler: newSynchronizer(cm),
-
-		queue: queue,
-	}, nil
+		externalServer: external.New(consensusClient, authClient, chainClient),
+		rpcServer:      rpc.New(),
+	}
 }
 
 type network struct {
-	config      networkConfig.Config
-	connManager connection.Manager
-	server      server.Interface
-	syncHandler *synchronizer
-
-	queue mq.Queue
+	externalServer external.Server
+	rpcServer      external.Server
 }
 
-func (n *network) Run(quit chan<- error) {
-	go n.connManager.Run(quit)
-	go n.server.Run(quit)
-
-	go n.handleServer(quit)
-	go n.subQueue(quit)
-}
-
-func (n *network) handleServer(quit chan<- error) {
-	for {
-		m := n.server.Message()
-
-		switch mq.RoutingKey(m.Key) {
-		case mq.SyncUnverifiedTx:
-			n.queue.Pub(mq.NetworkUnverifiedTx, m.Message.Payload())
-		}
-	}
-}
-
-func (n *network) subQueue(quit chan<- error) {
-	delivery, err := n.queue.Sub()
-	if err != nil {
-		quit <- err
-		return
-	}
-
-	for msg := range delivery {
-		go n.handleMQ(&msg)
-	}
-}
-
-func (n *network) handleMQ(msg *amqp.Delivery) {
-	key := mq.RoutingKey(msg.RoutingKey)
-	data := msg.Body
-
-	switch key {
-	case mq.AuthUnverifiedTx:
-		n.connManager.Broadcast(mq.SyncUnverifiedTx, data)
-	}
+func (n *network) Run() {
+	go n.externalServer.Run()
+	n.rpcServer.Run()
 }
