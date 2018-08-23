@@ -40,9 +40,9 @@ func NewFactory(t string, urls []string) (Factory, error) {
 	case "tikv":
 		raw, err = tikv.New(urls)
 	case "redis":
-		raw, err = redis.New(urls)
+		raw = redis.New(urls)
 	default:
-		log.Panic("Can't match type %s", t)
+		log.Panicf("Can't match type %s", t)
 	}
 
 	if err != nil {
