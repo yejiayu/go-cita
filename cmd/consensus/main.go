@@ -31,5 +31,10 @@ func main() {
 		defer otClose.Close()
 	}
 
-	consensus.New().Run()
+	server, err := consensus.New()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	server.Run()
 }

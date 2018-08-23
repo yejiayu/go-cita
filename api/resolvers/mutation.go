@@ -21,7 +21,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	types "github.com/yejiayu/go-cita/api/schema/types"
-	pbTypes "github.com/yejiayu/go-cita/types"
+	pbTypes "github.com/yejiayu/go-cita/pb"
 )
 
 type Mutation struct {
@@ -44,7 +44,7 @@ func (m *Mutation) SendTransaction(p graphql.ResolveParams) (interface{}, error)
 		data = common.Hex2Bytes(untx.Transaction.Data[2:])
 	}
 
-	req := &pbTypes.SendTransactionReq{
+	req := &pbTypes.AddUnverifyTxReq{
 		Untx: &pbTypes.UnverifiedTransaction{
 			Signature: common.Hex2Bytes(untx.Signature[2:]),
 			Crypto:    pbTypes.Crypto(untx.Crypto),
@@ -60,7 +60,7 @@ func (m *Mutation) SendTransaction(p graphql.ResolveParams) (interface{}, error)
 			},
 		},
 	}
-	reply, err := m.clients.auth.SendTransaction(p.Context, req)
+	reply, err := m.clients.auth.AddUnverifyTx(p.Context, req)
 
 	if err != nil {
 		return nil, err

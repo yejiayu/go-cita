@@ -21,7 +21,7 @@ import (
 	"github.com/caarlos0/env"
 
 	"github.com/yejiayu/go-cita/api"
-	"github.com/yejiayu/go-cita/tools/tracing"
+	"github.com/yejiayu/go-cita/common/tracing"
 	"github.com/yejiayu/go-cita/log"
 )
 
@@ -39,7 +39,7 @@ func main() {
 	cfg := config{}
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	log.Infof("api config %+v", cfg)
@@ -51,6 +51,6 @@ func main() {
 	}
 
 	if err := api.New(cfg.Port, cfg.AuthURL, cfg.ChainURL); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }

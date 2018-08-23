@@ -18,7 +18,7 @@ package resolvers
 import (
 	"google.golang.org/grpc"
 
-	"github.com/yejiayu/go-cita/types"
+	"github.com/yejiayu/go-cita/pb"
 )
 
 type Resolver struct {
@@ -27,8 +27,8 @@ type Resolver struct {
 }
 
 type clients struct {
-	auth  types.AuthClient
-	chain types.ChainClient
+	auth  pb.AuthClient
+	chain pb.ChainClient
 }
 
 func New(authClient, chainClient string) (*Resolver, error) {
@@ -36,13 +36,13 @@ func New(authClient, chainClient string) (*Resolver, error) {
 	if err != nil {
 		return nil, err
 	}
-	auth := types.NewAuthClient(conn)
+	auth := pb.NewAuthClient(conn)
 
 	conn, err = grpc.Dial(chainClient, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
-	chain := types.NewChainClient(conn)
+	chain := pb.NewChainClient(conn)
 
 	cs := &clients{
 		auth:  auth,

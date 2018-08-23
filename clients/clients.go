@@ -10,7 +10,7 @@ import (
 func NewAuthClient(url string) pb.AuthClient {
 	conn, err := grpc.Dial(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	return pb.NewAuthClient(conn)
@@ -19,7 +19,7 @@ func NewAuthClient(url string) pb.AuthClient {
 func NewChainClient(url string) pb.ChainClient {
 	conn, err := grpc.Dial(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	return pb.NewChainClient(conn)
@@ -28,7 +28,7 @@ func NewChainClient(url string) pb.ChainClient {
 func NewNetworkClient(url string) pb.NetworkClient {
 	conn, err := grpc.Dial(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	return pb.NewNetworkClient(conn)

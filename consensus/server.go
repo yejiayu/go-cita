@@ -53,14 +53,14 @@ func (s *server) Run() {
 	port := cfg.GetPort()
 	lis, err := net.Listen("tcp", "0.0.0.0:"+port)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	log.Infof("The consensus server listens on port %s", port)
 	pb.RegisterConsensusServer(s.grpcS, s)
 
 	if err := s.grpcS.Serve(lis); err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
 

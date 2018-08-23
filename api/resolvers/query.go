@@ -18,8 +18,6 @@ package resolvers
 import (
 	"github.com/graphql-go/graphql"
 	ot "github.com/opentracing/opentracing-go"
-
-	"github.com/yejiayu/go-cita/types"
 )
 
 type Query struct {
@@ -34,13 +32,14 @@ func (q *Query) Hello(p graphql.ResolveParams) (interface{}, error) {
 }
 
 func (q *Query) LatestHeight(p graphql.ResolveParams) (interface{}, error) {
-	span, ctx := ot.StartSpanFromContext(p.Context, "latest-height")
-	defer span.Finish()
-
-	res, err := q.clients.chain.LatestHeight(ctx, &types.LatestHeightReq{})
-	if err != nil {
-		return nil, err
-	}
-
-	return res.GetHeight(), nil
+	// span, ctx := ot.StartSpanFromContext(p.Context, "latest-height")
+	// defer span.Finish()
+	//
+	// res, err := q.clients.chain.LatestHeight(ctx, &pb.LatestHeightReq{})
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// return res.GetHeight(), nil
+	return 10, nil
 }
