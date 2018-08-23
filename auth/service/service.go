@@ -178,7 +178,7 @@ func (s *service) EnsureFromPool(ctx context.Context, nodeID uint32, quotaUsed u
 }
 
 func (s *service) GetHashFromPool(ctx context.Context, count uint32, quotaLimit uint64) ([]hash.Hash, error) {
-	signedTxs, err := s.pool.GetAll(ctx, count)
+	signedTxs, err := s.pool.Pull(ctx, count)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (s *service) ClearPool(ctx context.Context, height uint64) error {
 		hashes[i] = hash.BytesToHash(h)
 	}
 
-	_, err = s.pool.Del(ctx, hashes)
+	_, err = s.pool.Flush(ctx, hashes)
 	return err
 }
 
