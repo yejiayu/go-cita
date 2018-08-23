@@ -254,12 +254,12 @@ func (e *tendermint) WAL(data []byte) error {
 }
 
 func (e *tendermint) GetValidatorSet(height uint64) (*params.ValidatorSet, error) {
-	res, err := e.chainClient.NodeList(context.Background(), &pb.NodeListReq{
+	res, err := e.chainClient.GetValidators(context.Background(), &pb.GetValidatorsReq{
 		Height: height,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return params.NewValidatorSet(res.GetNodes())
+	return params.NewValidatorSet(res.GetVals())
 }
