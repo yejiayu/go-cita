@@ -27,7 +27,7 @@ import (
 	"github.com/yejiayu/go-cita/pb"
 
 	"github.com/yejiayu/go-cita/auth/cache"
-	poolquota "github.com/yejiayu/go-cita/auth/pool/quota"
+	nooppool "github.com/yejiayu/go-cita/auth/pool/noop"
 	"github.com/yejiayu/go-cita/auth/service"
 	cfg "github.com/yejiayu/go-cita/config/auth"
 	"github.com/yejiayu/go-cita/database"
@@ -43,7 +43,7 @@ func New(dbFactory database.Factory, networkClient pb.NetworkClient) Server {
 		log.Panic(err)
 	}
 
-	pool := poolquota.New(dbFactory.TxDB(), cfg.GetRedisURL(), cfg.GetPoolCount())
+	pool := nooppool.New(dbFactory.TxDB(), cfg.GetRedisURL(), cfg.GetPoolCount())
 	cache := cache.New(conn)
 	svc := service.New(dbFactory, networkClient, cache, pool)
 

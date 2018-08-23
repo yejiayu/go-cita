@@ -207,9 +207,11 @@ func (s *service) GetHashFromPool(ctx context.Context, count uint32, quotaLimit 
 		validHashes = append(validHashes, txHash)
 	}
 
-	// delete invali tx
-	if _, err := s.pool.Del(ctx, invalidHashes); err != nil {
-		return nil, err
+	if len(invalidHashes) > 0 {
+		// delete invali tx
+		if _, err := s.pool.Del(ctx, invalidHashes); err != nil {
+			return nil, err
+		}
 	}
 
 	return validHashes, nil

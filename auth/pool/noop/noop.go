@@ -95,7 +95,6 @@ func (p *noopPool) Pull(ctx context.Context, count uint32) ([]*pb.SignedTransact
 	if err != nil {
 		return nil, err
 	}
-
 	if len(reply) > int(count) {
 		reply = reply[:count]
 	}
@@ -115,6 +114,9 @@ func (p *noopPool) Pull(ctx context.Context, count uint32) ([]*pb.SignedTransact
 }
 
 func (p *noopPool) Get(ctx context.Context, hashes []hash.Hash) ([]*pb.SignedTransaction, error) {
+	if len(hashes) == 0 {
+		return nil, nil
+	}
 	keys := make([]interface{}, len(hashes)+1)
 	keys[0] = poolKey
 	for i, hash := range hashes {
@@ -155,6 +157,9 @@ func (p *noopPool) Get(ctx context.Context, hashes []hash.Hash) ([]*pb.SignedTra
 }
 
 func (p *noopPool) Del(ctx context.Context, hashes []hash.Hash) (int64, error) {
+	if len(hashes) == 0 {
+		return 0, nil
+	}
 	keys := make([]interface{}, len(hashes)+1)
 	keys[0] = poolKey
 	for i, hash := range hashes {
@@ -171,6 +176,9 @@ func (p *noopPool) Del(ctx context.Context, hashes []hash.Hash) (int64, error) {
 }
 
 func (p *noopPool) Flush(ctx context.Context, hashes []hash.Hash) (int64, error) {
+	if len(hashes) == 0 {
+		return 0, nil
+	}
 	keys := make([]interface{}, len(hashes)+1)
 	keys[0] = poolKey
 	for i, hash := range hashes {
