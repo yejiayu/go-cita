@@ -36,8 +36,6 @@ type Interface interface {
 }
 
 func New(authClient pb.AuthClient, chainClient pb.ChainClient, networkClient pb.NetworkClient) Interface {
-	ctx := context.Background()
-
 	t := &tendermint{
 		authClient:    authClient,
 		chainClient:   chainClient,
@@ -59,38 +57,9 @@ func New(authClient pb.AuthClient, chainClient pb.ChainClient, networkClient pb.
 	}
 	t.wal = wal
 
-	res, err := chainClient.GetBlockHeader(ctx, &pb.GetBlockHeaderReq{
-		Height: math.MaxUint64,
-	})
-	if err != nil {
+	if err := t.init(); err != nil {
 		log.Panic(err)
 	}
-	lastHeader := res.GetHeader()
-	if err != nil {
-		log.Panic(err)
-	}
-	lastHeaderHash, err := hash.ProtoToSha3(lastHeader)
-	if err != nil {
-		log.Panic(err)
-	}
-	t.lastHeader = lastHeader
-	t.lastHeaderHash = lastHeaderHash
-
-	nodeListRes, err := chainClient.NodeList(ctx, &pb.NodeListReq{
-		Height: lastHeader.GetHeight(),
-	})
-	if err != nil {
-		log.Panic(err)
-	}
-	valSet, err := params.NewValidatorSet(nodeListRes.GetNodes())
-	if err != nil {
-		log.Panic(err)
-	}
-	t.valSet = valSet
-
-	rs := NewRoundStep(t.lastHeader.GetHeight(), t.valSet, t.singer, t)
-	t.rs = rs
-
 	return t
 }
 
@@ -113,6 +82,66 @@ type tendermint struct {
 	valSet         *params.ValidatorSet
 }
 
+func (t *tendermint) init() error {
+	ctx := context.Background()
+
+	res, err := t.chainClient.GetBlockHeader(ctx, &pb.GetBlockHeaderReq{
+		Height: math.MaxUint64,
+	})
+	if err != nil {
+		return err
+	}
+	var lastHeader *pb.BlockHeader
+	if res.GetHeader() == nil {
+		header, err := t.createGenesis(ctx)
+		if err != nil {
+			return err
+		}
+
+		lastHeader = header
+	} else {
+		lastHeader = res.GetHeader()
+	}
+
+	// lastHeader := res.GetHeader()
+	lastHeaderHash, err := hash.ProtoToSha3(lastHeader)
+	if err != nil {
+		return err
+	}
+	t.lastHeader = lastHeader
+	t.lastHeaderHash = lastHeaderHash
+
+	valSet, err := t.GetValidatorSet(t.lastHeader.GetHeight())
+	if err != nil {
+		return err
+	}
+	t.valSet = valSet
+	t.rs = NewRoundStep(t.lastHeader.GetHeight()+1, t.valSet, t.singer, t)
+	return nil
+}
+
+func (t *tendermint) createGenesis(ctx context.Context) (*pb.BlockHeader, error) {
+	_, err := t.chainClient.NewBlock(ctx, &pb.NewBlockReq{
+		Block: &pb.Block{
+			Header: &pb.BlockHeader{
+				Height: 0,
+			},
+			Body: &pb.BlockBody{},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := t.chainClient.GetBlockHeader(ctx, &pb.GetBlockHeaderReq{
+		Height: math.MaxUint64,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.GetHeader(), nil
+}
+
 // SetProposal. RoundStepPropose -> RoundStepPrevote
 func (t *tendermint) SetProposal(ctx context.Context, proposal *pb.Proposal, signature []byte) error {
 	return t.rs.SetProposal(proposal, signature)
@@ -126,7 +155,7 @@ func (t *tendermint) SetVote(ctx context.Context, vote *pb.Vote, signature []byt
 
 func (t *tendermint) ProposalBlock(height uint64, signer *params.Singer) (*pb.Block, error) {
 	if height-1 != t.lastHeader.GetHeight() {
-		log.Panic("ProposalBlock, proposal height is %d, but last height is %d", height, t.lastHeader.GetHeight())
+		log.Panicf("ProposalBlock, proposal height is %d, but last height is %d", height, t.lastHeader.GetHeight())
 	}
 
 	ctx := context.Background()
@@ -186,10 +215,37 @@ func (t *tendermint) BroadcastVote(vote *pb.Vote, signature []byte) error {
 }
 
 func (t *tendermint) Commit(block *pb.Block) error {
-	_, err := t.chainClient.NewBlock(context.Background(), &pb.NewBlockReq{
+	ctx := context.Background()
+	_, err := t.chainClient.NewBlock(ctx, &pb.NewBlockReq{
 		Block: block,
 	})
+	if err != nil {
+		return err
+	}
 
+	_, err = t.authClient.ClearPool(ctx, &pb.ClearPoolReq{
+		Height: block.GetHeader().GetHeight(),
+	})
+	if err != nil {
+		return err
+	}
+
+	res, err := t.chainClient.GetBlockHeader(ctx, &pb.GetBlockHeaderReq{
+		Height: math.MaxUint64,
+	})
+	if err != nil {
+		return err
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.lastHeader = res.GetHeader()
+	lastHeaderHash, err := hash.ProtoToSha3(t.lastHeader)
+	if err != nil {
+		return err
+	}
+	t.lastHeaderHash = lastHeaderHash
 	return err
 }
 
