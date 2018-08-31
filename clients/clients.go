@@ -43,6 +43,15 @@ func NewConsensusClient(url string) pb.ConsensusClient {
 	return pb.NewConsensusClient(conn)
 }
 
+func NewVMClient(url string) pb.VMClient {
+	conn, err := create(url)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return pb.NewVMClient(conn)
+}
+
 func create(url string) (*grpc.ClientConn, error) {
 	return grpc.Dial(url, grpc.WithInsecure())
 }
