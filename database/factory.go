@@ -24,12 +24,16 @@ import (
 	"github.com/yejiayu/go-cita/database/raw/tikv"
 
 	"github.com/yejiayu/go-cita/database/block"
+	"github.com/yejiayu/go-cita/database/ethdb"
 	"github.com/yejiayu/go-cita/database/tx"
 )
 
 type Factory interface {
+	RawDB() raw.Interface
 	BlockDB() block.Interface
 	TxDB() tx.Interface
+	// StateDB(root hash.Hash) state.Interface
+	EthDB() ethdb.Database
 }
 
 func NewFactory(t string, urls []string) (Factory, error) {
@@ -55,10 +59,22 @@ type factory struct {
 	raw raw.Interface
 }
 
+func (f *factory) RawDB() raw.Interface {
+	return f.raw
+}
+
 func (f *factory) BlockDB() block.Interface {
 	return block.New(f.raw)
 }
 
 func (f *factory) TxDB() tx.Interface {
 	return tx.New(f.raw)
+}
+
+// func (f *factory) StateDB(root hash.Hash) state.Interface {
+// 	return state.New(root, f.raw)
+// }
+
+func (f *factory) EthDB() ethdb.Database {
+	return ethdb.New(f.raw)
 }
