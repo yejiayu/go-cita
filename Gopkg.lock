@@ -5,7 +5,13 @@
   branch = "master"
   name = "github.com/BurntSushi/toml"
   packages = ["."]
-  revision = "a368813c5e648fee92e5f6c30e3944ff9d5e8895"
+  revision = "3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/aristanetworks/goarista"
+  packages = ["monotime"]
+  revision = "4dd728aa987e9168a1e609e4919921dbfac9bd7f"
 
 [[projects]]
   branch = "master"
@@ -17,7 +23,7 @@
   branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
-  revision = "9a2f9524024889e129a5422aca2cff73cb3eabf6"
+  revision = "79e00513b1011888b1e675157ab89f527f901cae"
 
 [[projects]]
   name = "github.com/caarlos0/env"
@@ -58,18 +64,56 @@
   revision = "ca4c9f2c136954238c3158b92de72078c7672ecc"
 
 [[projects]]
+  name = "github.com/deckarep/golang-set"
+  packages = ["."]
+  revision = "1d4478f51bed434f1dadf96dcd9b43aabac66795"
+  version = "v1.7"
+
+[[projects]]
   name = "github.com/ethereum/go-ethereum"
   packages = [
+    "accounts/abi",
     "common",
     "common/hexutil",
     "common/math",
+    "common/mclock",
+    "consensus",
+    "consensus/misc",
+    "core",
+    "core/rawdb",
+    "core/state",
+    "core/types",
+    "core/vm",
     "crypto",
+    "crypto/bn256",
+    "crypto/bn256/cloudflare",
+    "crypto/bn256/google",
     "crypto/secp256k1",
     "crypto/sha3",
-    "rlp"
+    "ethdb",
+    "event",
+    "log",
+    "metrics",
+    "p2p/netutil",
+    "params",
+    "rlp",
+    "rpc",
+    "trie"
   ]
-  revision = "37685930d953bcbe023f9bc65b135a8d8b8f1488"
-  version = "v1.8.12"
+  revision = "89451f7c382ad2185987ee369f16416f89c28a7d"
+  version = "v1.8.15"
+
+[[projects]]
+  name = "github.com/go-stack/stack"
+  packages = ["."]
+  revision = "2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a"
+  version = "v1.8.0"
+
+[[projects]]
+  name = "github.com/gogo/protobuf"
+  packages = ["proto"]
+  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
+  version = "v1.1.1"
 
 [[projects]]
   branch = "master"
@@ -87,8 +131,8 @@
     "ptypes/duration",
     "ptypes/timestamp"
   ]
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -109,7 +153,7 @@
   branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
-  revision = "e89373fe6b4a7413d7acd6da1725b83ef713e6e4"
+  revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
 
 [[projects]]
   name = "github.com/graphql-go/graphql"
@@ -126,8 +170,8 @@
     "language/typeInfo",
     "language/visitor"
   ]
-  revision = "1e23489041ba90a66f317fe0deccb236a2fff3cb"
-  version = "v0.7.5"
+  revision = "5c1be0872a56fba73b279434ea95dfda735abedd"
+  version = "v0.7.6"
 
 [[projects]]
   name = "github.com/graphql-go/handler"
@@ -153,10 +197,19 @@
   version = "v1.2.0"
 
 [[projects]]
+  name = "github.com/hashicorp/golang-lru"
+  packages = [
+    ".",
+    "simplelru"
+  ]
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+  version = "v0.5.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/juju/errors"
   packages = ["."]
-  revision = "c7d06af17c68cd34c835053720b21f6549d9b0ee"
+  revision = "22422dad46e14561a0854ad42497a75af9b61909"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -165,10 +218,10 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
+  revision = "fa473d140ef3c6adf42d6b391fe76707f1f243c8"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/opentracing/opentracing-go"
@@ -218,13 +271,13 @@
     "pkg/raft_serverpb",
     "pkg/tikvpb"
   ]
-  revision = "5e6e69a5ed381bd4a8afe7cb96cc47f955f6d160"
+  revision = "279515615485b0f2d12f1421cc412fe2784e0190"
 
 [[projects]]
   branch = "master"
   name = "github.com/pingcap/pd"
   packages = ["pd-client"]
-  revision = "27bc9b0d75e8e70bc34c33b011799b7cedd8f454"
+  revision = "b38265ecd53e5f169e961916745ca4029bfae684"
 
 [[projects]]
   name = "github.com/pingcap/tidb"
@@ -257,6 +310,7 @@
     "util/charset",
     "util/chunk",
     "util/codec",
+    "util/execdetails",
     "util/format",
     "util/goroutine_pool",
     "util/hack",
@@ -264,8 +318,8 @@
     "util/logutil",
     "util/memory"
   ]
-  revision = "dd37138dc0bbcf20296d9bc3972cb25e73e36797"
-  version = "v2.1.0-beta"
+  revision = "d9f7ffe539fef04b516c9326bbff0d850191eba2"
+  version = "v2.1.0-rc.1"
 
 [[projects]]
   branch = "master"
@@ -275,7 +329,7 @@
     "go-tipb",
     "sharedbytes"
   ]
-  revision = "39b13ea87c427f431d54906e33a3f1ba922fcb4c"
+  revision = "5e46e0ec647edfee8fe001c5b51609460fb655bf"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -303,7 +357,7 @@
     "internal/bitbucket.org/ww/goautoneg",
     "model"
   ]
-  revision = "7600349dcfe1abd18d72d3a1770870d9800a7801"
+  revision = "c7de2306084e37d54b8be01f3541a8464345e9a5"
 
 [[projects]]
   branch = "master"
@@ -314,7 +368,13 @@
     "nfs",
     "xfs"
   ]
-  revision = "ae68e2d4c00fed4943b5f6698d504a5fe083da8a"
+  revision = "05ee40e3a273f7245e8777337fc7b46e533a9a92"
+
+[[projects]]
+  name = "github.com/rs/cors"
+  packages = ["."]
+  revision = "3fb1b69b103a84de38a19c3c6ec073dd6caa4d3f"
+  version = "v1.5.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -329,9 +389,22 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/streadway/amqp"
-  packages = ["."]
-  revision = "e5adc2ada8b8efff032bf61173a233d143e9318e"
+  name = "github.com/syndtr/goleveldb"
+  packages = [
+    "leveldb",
+    "leveldb/cache",
+    "leveldb/comparer",
+    "leveldb/errors",
+    "leveldb/filter",
+    "leveldb/iterator",
+    "leveldb/journal",
+    "leveldb/memdb",
+    "leveldb/opt",
+    "leveldb/storage",
+    "leveldb/table",
+    "leveldb/util"
+  ]
+  revision = "ae2bd5eed72d46b28834ec3f60db3a3ebedd8dbd"
 
 [[projects]]
   name = "github.com/twinj/uuid"
@@ -392,8 +465,14 @@
     "internal/exit",
     "zapcore"
   ]
-  revision = "4d45f9617f7d90f7a663ff21c7a4321dbe78098b"
-  version = "v1.9.0"
+  revision = "ff33455a0e382e8a81d14dd7c922020b6b5e7982"
+  version = "v1.9.1"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ripemd160"]
+  revision = "182538f80094b6a8efaade63a8fd8e0d9d5843dd"
 
 [[projects]]
   branch = "master"
@@ -405,15 +484,19 @@
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "trace"
+    "trace",
+    "websocket"
   ]
-  revision = "a680a1efc54dd51c040b3b5ce4939ea3cf2ea0d1"
+  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "ac767d655b305d4e9612f5f6e33120b9176c4ad4"
+  packages = [
+    "cpu",
+    "unix"
+  ]
+  revision = "49385e6e15226593f68b26af201feec29d5bba22"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -454,7 +537,7 @@
     "googleapis/api/annotations",
     "googleapis/rpc/status"
   ]
-  revision = "02b4e95473316948020af0b7a4f0f22c73929b0e"
+  revision = "c66870c02cf823ceb633bcd05be3c7cda29976f4"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -473,7 +556,9 @@
     "internal",
     "internal/backoff",
     "internal/channelz",
+    "internal/envconfig",
     "internal/grpcrand",
+    "internal/transport",
     "keepalive",
     "metadata",
     "naming",
@@ -483,12 +568,17 @@
     "resolver/passthrough",
     "stats",
     "status",
-    "tap",
-    "transport"
+    "tap"
   ]
-  revision = "168a6198bcb0ef175f7dacec0b8691fc141dc9b8"
+  revision = "32fb0ac620c32ba40a4626ddf94d90d12cce3455"
   source = "https://github.com/grpc/grpc-go.git"
-  version = "v1.13.0"
+  version = "v1.14.0"
+
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/karalabe/cookiejar.v2"
+  packages = ["collections/prque"]
+  revision = "8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57"
 
 [[projects]]
   name = "gopkg.in/natefinch/lumberjack.v2"
@@ -496,9 +586,15 @@
   revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
   version = "v2.1"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/natefinch/npipe.v2"
+  packages = ["."]
+  revision = "c1b8fa8bdccecb0b8db834ee0b92fdbcfa606dd6"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "947f3a77367e8f915d73a9a21691d29c1342def8d5a832e4cb21cd577c2aa539"
+  inputs-digest = "be44e8389eecf84ef32aa6f23cf98671eb55f5e6cef198a16ddc0ebcdda3b19e"
   solver-name = "gps-cdcl"
   solver-version = 1

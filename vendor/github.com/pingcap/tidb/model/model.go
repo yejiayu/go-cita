@@ -14,9 +14,11 @@
 package model
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
+	"github.com/juju/errors"
 	"github.com/pingcap/tidb/mysql"
 	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tipb/go-tipb"
@@ -285,7 +287,7 @@ type PartitionInfo struct {
 // PartitionDefinition defines a single partition.
 type PartitionDefinition struct {
 	ID       int64    `json:"id"`
-	Name     string   `json:"name"`
+	Name     CIStr    `json:"name"`
 	LessThan []string `json:"less_than"`
 	Comment  string   `json:"comment,omitempty"`
 }
@@ -407,6 +409,14 @@ func (db *DBInfo) Clone() *DBInfo {
 	return &newInfo
 }
 
+// Copy shallow copies DBInfo.
+func (db *DBInfo) Copy() *DBInfo {
+	newInfo := *db
+	newInfo.Tables = make([]*TableInfo, len(db.Tables))
+	copy(newInfo.Tables, db.Tables)
+	return &newInfo
+}
+
 // CIStr is case insensitive string.
 type CIStr struct {
 	O string `json:"O"` // Original string.
@@ -423,6 +433,25 @@ func NewCIStr(s string) (cs CIStr) {
 	cs.O = s
 	cs.L = strings.ToLower(s)
 	return
+}
+
+// UnmarshalJSON implements the user defined unmarshal method.
+// CIStr can be unmarshaled from a single string, so PartitionDefinition.Name
+// in this change https://github.com/pingcap/tidb/pull/6460/files would be
+// compatible during TiDB upgrading.
+func (cis *CIStr) UnmarshalJSON(b []byte) error {
+	type T CIStr
+	if err := json.Unmarshal(b, (*T)(cis)); err == nil {
+		return nil
+	}
+
+	// Unmarshal CIStr from a single string.
+	err := json.Unmarshal(b, &cis.O)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	cis.L = strings.ToLower(cis.O)
+	return nil
 }
 
 // ColumnsToProto converts a slice of model.ColumnInfo to a slice of tipb.ColumnInfo.

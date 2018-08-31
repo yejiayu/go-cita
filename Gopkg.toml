@@ -27,11 +27,7 @@
 
 [[constraint]]
   name = "github.com/ethereum/go-ethereum"
-  version = "1.8.12"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/golang/glog"
+  version = "1.7.3"
 
 [[constraint]]
   name = "github.com/golang/protobuf"
@@ -52,14 +48,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/streadway/amqp"
-
-[[constraint]]
-  branch = "master"
-  name = "golang.org/x/net"
 
 # lock grpc version at 1.7.5 because etcd depdens on this version
 [[constraint]]

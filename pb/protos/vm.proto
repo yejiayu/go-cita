@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+import "chain.proto";
+
+message Receipt {
+  bytes state_root = 1;
+  uint64 gas_used = 2;
+  bytes log_bloom = 3;
+  repeated LogEntry logs = 4;
+  string error = 5;
+  bytes transaction_hash = 7;
+  bytes contract_address = 8;
+}
+
+message LogEntry {
+  bytes address = 1;
+  repeated bytes topics = 2;
+  bytes data = 3;
+}
+
+message CallReq {
+  repeated bytes tx_hashes = 1;
+  BlockHeader header = 2;
+}
+
+message CallRes {
+  repeated Receipt receipts = 1;
+  bytes state_root = 2;
+}
+
+service VM {
+  rpc Call(CallReq) returns (CallRes) {}
+}
