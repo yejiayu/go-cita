@@ -1,9 +1,9 @@
 ## Go-Cita - WIP
 > A Go implementation of CITA, Based on cita 2.0 microservices architecture.
-## components
+## Components
 - API - Provide user interface for facebook GraphQL.
 - Network - Provide inter-node access.
-- Consensus - Consensus module, the realization of the tendermint algorithm, the future support consensus pluggable.
+- Consensus - Consensus module, Use the tendermint consensus algorithm for future support consensus pluggable.
 - Sync - Block synchronization between nodes.
 - Auth - Management of the transaction pool.
 - Chain - Management block.
@@ -17,4 +17,4 @@ In development...
 - [ ] Sync
 - [x] Auth
 - [ ] Chain
-- [ ] VM
+- [x] VM - MVP
