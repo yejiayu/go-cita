@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/pingcap/tidb/mysql"
+	"github.com/pingcap/tidb/util/execdetails"
 	"github.com/pingcap/tidb/util/memory"
 )
 
@@ -42,6 +43,9 @@ type SQLWarn struct {
 type StatementContext struct {
 	// Set the following variables before execution
 
+	// IsDDLJobInQueue is used to mark whether the DDL job is put into the queue.
+	// If IsDDLJobInQueue is true, it means the DDL job is in the queue of storage, and it can be handled by the DDL worker.
+	IsDDLJobInQueue        bool
 	InInsertStmt           bool
 	InUpdateOrDeleteStmt   bool
 	InSelectStmt           bool
@@ -64,6 +68,7 @@ type StatementContext struct {
 		foundRows         uint64
 		warnings          []SQLWarn
 		histogramsNotLoad bool
+		execDetails       execdetails.ExecDetails
 	}
 
 	// Copied from SessionVars.TimeZone.
@@ -122,6 +127,27 @@ func (sc *StatementContext) WarningCount() uint16 {
 	sc.mu.Lock()
 	wc := uint16(len(sc.mu.warnings))
 	sc.mu.Unlock()
+	return wc
+}
+
+// NumWarnings gets warning count. It's different from `WarningCount` in that
+// `WarningCount` return the warning count of the last executed command, so if
+// the last command is a SHOW statement, `WarningCount` return 0. On the other
+// hand, `NumWarnings` always return number of warnings(or errors if `errOnly`
+// is set).
+func (sc *StatementContext) NumWarnings(errOnly bool) uint16 {
+	var wc uint16
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	if errOnly {
+		for _, warn := range sc.mu.warnings {
+			if warn.Level == WarnLevelError {
+				wc++
+			}
+		}
+	} else {
+		wc = uint16(len(sc.mu.warnings))
+	}
 	return wc
 }
 
@@ -211,4 +237,26 @@ func (sc *StatementContext) ResetForRetry() {
 	sc.mu.foundRows = 0
 	sc.mu.warnings = nil
 	sc.mu.Unlock()
+}
+
+// MergeExecDetails merges a single region execution details into self, used to print
+// the information in slow query log.
+func (sc *StatementContext) MergeExecDetails(details *execdetails.ExecDetails) {
+	sc.mu.Lock()
+	sc.mu.execDetails.ProcessTime += details.ProcessTime
+	sc.mu.execDetails.WaitTime += details.WaitTime
+	sc.mu.execDetails.BackoffTime += details.BackoffTime
+	sc.mu.execDetails.RequestCount++
+	sc.mu.execDetails.TotalKeys += details.TotalKeys
+	sc.mu.execDetails.ProcessedKeys += details.ProcessedKeys
+	sc.mu.Unlock()
+}
+
+// GetExecDetails gets the execution details for the statement.
+func (sc *StatementContext) GetExecDetails() execdetails.ExecDetails {
+	var details execdetails.ExecDetails
+	sc.mu.Lock()
+	details = sc.mu.execDetails
+	sc.mu.Unlock()
+	return details
 }
