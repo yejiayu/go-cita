@@ -1,9 +1,7 @@
 package vm
 
 import (
-	"log"
 	"math/big"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -13,16 +11,12 @@ import (
 func NewMessage(gasLimit uint64, signedTx *pb.SignedTransaction) *Message {
 	tx := signedTx.GetTransactionWithSig().GetTransaction()
 
-	nonce, err := strconv.Atoi(tx.GetNonce())
-	if err != nil {
-		log.Fatal(err)
-	}
 	amount := &big.Int{}
 	amount.SetBytes(tx.GetValue())
 
 	msg := &Message{
 		from:       common.BytesToAddress(signedTx.GetSigner()),
-		nonce:      uint64(nonce),
+		nonce:      1,
 		amount:     amount,
 		gasLimit:   gasLimit,
 		gasPrice:   big.NewInt(0),
