@@ -23,6 +23,11 @@ type Interface interface {
 	Put(ctx context.Context, namespace string, key, value []byte) error
 	Get(ctx context.Context, namespace string, key []byte) ([]byte, error)
 	Delete(ctx context.Context, namespace string, key []byte) error
+	BatchGet(ctx context.Context, namespace string, keys [][]byte) ([][]byte, error)
+	BatchPut(ctx context.Context, namespace string, keys, values [][]byte) error
+	BatchDelete(ctx context.Context, namespace string, keys [][]byte) error
 
 	Scan(ctx context.Context, namespace string, prefix []byte, limit int) ([][]byte, [][]byte, error)
+
+	Close() error
 }
