@@ -78,7 +78,6 @@ func (s *server) Run() {
 }
 
 func (s *server) AddUnverifyTx(ctx context.Context, req *pb.AddUnverifyTxReq) (*pb.AddUnverifyTxRes, error) {
-	log.Infof("%+v", req.GetUntx())
 	hash, err := s.svc.AddUnverifyTx(ctx, req.GetUntx())
 	if err != nil {
 		return nil, err
