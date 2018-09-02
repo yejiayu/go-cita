@@ -8,15 +8,15 @@ import (
 
 func NewMessage(
 	from common.Address, to *common.Address,
-	data []byte, gas uint64, value *big.Int,
+	data []byte, quota uint64, value *big.Int,
 	txHash []byte,
 ) *Message {
 	msg := &Message{
 		from:       from,
 		nonce:      1,
 		amount:     value,
-		gas:        gas,
-		gasPrice:   big.NewInt(1),
+		quota:      quota,
+		quotaPrice: big.NewInt(1),
 		data:       data,
 		checkNonce: false,
 		txHash:     txHash,
@@ -34,8 +34,8 @@ type Message struct {
 	from       common.Address
 	nonce      uint64
 	amount     *big.Int
-	gas        uint64
-	gasPrice   *big.Int
+	quota      uint64
+	quotaPrice *big.Int
 	data       []byte
 	checkNonce bool
 	txHash     []byte
@@ -43,9 +43,9 @@ type Message struct {
 
 func (m Message) From() common.Address { return m.from }
 func (m Message) To() *common.Address  { return m.to }
-func (m Message) GasPrice() *big.Int   { return m.gasPrice }
+func (m Message) QuotaPrice() *big.Int { return m.quotaPrice }
 func (m Message) Value() *big.Int      { return m.amount }
-func (m Message) Gas() uint64          { return m.gas }
+func (m Message) Quota() uint64        { return m.quota }
 func (m Message) Nonce() uint64        { return m.nonce }
 func (m Message) Data() []byte         { return m.data }
 func (m Message) CheckNonce() bool     { return m.checkNonce }

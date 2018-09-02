@@ -38,7 +38,7 @@ func main() {
 	}
 
 	var genesis vm.Genesis
-	if err := json.Unmarshal(data, &genesis); err != nil {
+	if err = json.Unmarshal(data, &genesis); err != nil {
 		log.Panic(err)
 	}
 

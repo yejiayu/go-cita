@@ -26,20 +26,32 @@ message BlockHeader {
   bytes state_root = 4;
   bytes transactions_root = 5;
   bytes receipts_root = 6;
-  uint64 gas_used = 7;
-  uint64 gas_limit = 8;
+  uint64 quota_used = 7;
+  uint64 quota_limit = 8;
   Proof proof = 9;
   bytes proposer = 10;
-}
-
-message AccountGasLimit {
-  uint64 common_gas_limit = 1;
-  map<string,uint64> specific_gas_limit = 2;
 }
 
 // data precompile API
 message BlockBody {
   repeated bytes tx_hashes = 1;
+}
+
+message Receipt {
+  bytes state_root = 1;
+  uint64 quota_used = 2;
+  uint64 quota = 3;
+  bytes log_bloom = 4;
+  repeated LogEntry logs = 5;
+  string error = 6;
+  bytes transaction_hash = 7;
+  bytes contract_address = 8;
+}
+
+message LogEntry {
+  bytes address = 1;
+  repeated bytes topics = 2;
+  bytes data = 3;
 }
 
 message NewBlockReq {
@@ -66,9 +78,18 @@ message GetBlockHeaderRes {
   BlockHeader header = 1;
 }
 
+message GetReceiptReq {
+  bytes tx_hash = 1;
+}
+
+message GetReceiptRes {
+  Receipt receipt = 1;
+}
+
 service Chain {
   rpc NewBlock (NewBlockReq) returns (Empty) {}
   rpc GetValidators(GetValidatorsReq) returns (GetValidatorsRes) {}
 
   rpc GetBlockHeader(GetBlockHeaderReq) returns (GetBlockHeaderRes) {}
+  rpc GetReceipt(GetReceiptReq) returns (GetReceiptRes) {}
 }

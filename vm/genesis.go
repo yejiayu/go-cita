@@ -72,11 +72,11 @@ func SetupGenesis(factory database.Factory, genesis *Genesis, execContract bool)
 	root := stateDB.IntermediateRoot(false)
 	block := &pb.Block{
 		Header: &pb.BlockHeader{
-			Prevhash:  common.HexToHash(genesis.Prevhash).Bytes(),
-			Timestamp: genesis.Timestamp,
-			GasLimit:  99999999,
-			Height:    0,
-			StateRoot: root.Bytes(),
+			Prevhash:   common.HexToHash(genesis.Prevhash).Bytes(),
+			Timestamp:  genesis.Timestamp,
+			QuotaLimit: 99999999,
+			Height:     0,
+			StateRoot:  root.Bytes(),
 		},
 		Body: &pb.BlockBody{},
 	}

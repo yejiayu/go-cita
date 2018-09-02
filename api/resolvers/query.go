@@ -76,7 +76,8 @@ func (q *Query) GetReceipt(p graphql.ResolveParams) (interface{}, error) {
 
 	pbReceipt := res.GetReceipt()
 	receipt := &types.Receipt{
-		QuotaUsed:       pbReceipt.GetGasUsed(),
+		QuotaUsed:       pbReceipt.GetQuotaUsed(),
+		Quota:           pbReceipt.GetQuota(),
 		LogBloom:        common.ToHex(pbReceipt.GetLogBloom()),
 		Error:           pbReceipt.GetError(),
 		TransactionHash: common.ToHex(pbReceipt.GetTransactionHash()),

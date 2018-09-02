@@ -13,7 +13,7 @@ var cfg *config
 
 type config struct {
 	PrivKeyHex string `env:"PRIVATE_KEY_HEX" envDefault:"add757cf60afa08fc54376db9cd1f313f2d20d907f3ac984f227ea0835fc0111"`
-	QuotaLimit int    `env:"QUOTA_LIMIT" envDefault:"99999"`
+	QuotaLimit int    `env:"QUOTA_LIMIT" envDefault:"99999999"`
 	TxCount    int    `env:"TX_COUNT" envDefault:"20000"`
 
 	Name string `env:"NAME" envDefault:"consensus"`

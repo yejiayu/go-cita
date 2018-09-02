@@ -4,14 +4,12 @@ import (
 	"context"
 	"math"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/protobuf/proto"
 
 	"github.com/yejiayu/go-cita/common/crypto"
 	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
-	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 )
 
@@ -69,19 +67,21 @@ func (svc *service) NewBlock(ctx context.Context, block *pb.Block) error {
 	}
 
 	// TODO: use MPT?
+	var quotaUsed uint64
 	var receiptsData []byte
 	for _, receipt := range res.GetReceipts() {
-		log.Info(common.BytesToAddress(receipt.GetContractAddress()).String())
 		data, err := proto.Marshal(receipt)
 		if err != nil {
 			return err
 		}
 		receiptsData = append(receiptsData, data...)
+		quotaUsed += receipt.GetQuotaUsed()
 	}
 	receiptsRoot := hash.BytesToSha3(receiptsData).Bytes()
 
 	block.GetHeader().ReceiptsRoot = receiptsRoot
 	block.GetHeader().StateRoot = res.GetStateRoot()
+	block.GetHeader().QuotaUsed = quotaUsed
 
 	return svc.blockDB.AddBlock(ctx, block, res.GetReceipts())
 }

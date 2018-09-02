@@ -21,6 +21,7 @@ import (
 
 type Receipt struct {
 	QuotaUsed       uint64      `json:"quota_used" mapstructure:"quota_used"`
+	Quota           uint64      `json:"quota" mapstructure:"quota"`
 	LogBloom        string      `json:"log_bloom" mapstructure:"log_bloom"`
 	Error           string      `json:"error" mapstructure:"error"`
 	TransactionHash string      `json:"transaction_hash" mapstructure:"transaction_hash"`
@@ -38,6 +39,7 @@ var ReceiptObject = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Receipt",
 	Fields: graphql.Fields{
 		"quota_used":       {Type: Uint64},
+		"quota":            {Type: Uint64},
 		"log_bloom":        {Type: Hex},
 		"error":            {Type: graphql.String},
 		"transaction_hash": {Type: Hex},

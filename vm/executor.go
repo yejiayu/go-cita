@@ -110,11 +110,11 @@ func (e *executor) StaticCall(ctx context.Context, height uint64, from, to, data
 		temp := common.BytesToAddress(to)
 		toAddr = &temp
 	}
-	msg := NewMessage(fromAddr, toAddr, data, header.GetGasLimit(), big.NewInt(0), []byte{})
+	msg := NewMessage(fromAddr, toAddr, data, header.GetQuotaLimit(), big.NewInt(0), []byte{})
 	vmCtx := NewVMContext(header, msg, e.blockDB)
 
 	evm := evm.New(vmCtx, stateDB, e.chainConfig, vm.Config{})
-	ret, _, err := evm.Call(vm.AccountRef(msg.From()), *msg.To(), msg.Data(), msg.Gas(), msg.Value())
+	ret, _, err := evm.Call(vm.AccountRef(msg.From()), *msg.To(), msg.Data(), msg.Quota(), msg.Value())
 	return ret, err
 }
 
@@ -125,6 +125,7 @@ func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Messag
 	receipt := &pb.Receipt{
 		StateRoot:       []byte{},
 		TransactionHash: msg.TxHash(),
+		Quota:           msg.Quota(),
 	}
 
 	var quotaUsed uint64
@@ -132,15 +133,15 @@ func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Messag
 
 	if msg.To() == nil {
 		var addr common.Address
-		_, addr, quotaUsed, err = evm.Create(sender, msg.Data(), msg.Gas(), msg.Value())
+		_, addr, quotaUsed, err = evm.Create(sender, msg.Data(), msg.Quota(), msg.Value())
 		receipt.ContractAddress = addr.Bytes()
 	} else {
-		_, quotaUsed, err = evm.Call(sender, *msg.To(), msg.Data(), msg.Gas(), msg.Value())
+		_, quotaUsed, err = evm.Call(sender, *msg.To(), msg.Data(), msg.Quota(), msg.Value())
 	}
 	if err != nil {
 		receipt.Error = err.Error()
 	}
-	receipt.GasUsed = msg.Gas() - quotaUsed
+	receipt.QuotaUsed = msg.Quota() - quotaUsed
 	ethLogs := stateDB.GetLogs(common.BytesToHash(msg.TxHash()))
 	logs := make([]*pb.LogEntry, len(ethLogs))
 	for i, l := range ethLogs {
@@ -175,7 +176,7 @@ func NewVMContext(header *pb.BlockHeader, msg *Message, blockDB block.Interface)
 		Transfer:    Transfer,
 		GetHash:     GetHashFunc(blockDB),
 		Origin:      msg.From(),
-		GasLimit:    header.GetGasLimit(),
+		GasLimit:    header.QuotaLimit,
 		BlockNumber: blockNumber,
 		Time:        t,
 		Difficulty:  nil,

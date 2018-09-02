@@ -173,8 +173,8 @@ func (t *tendermint) ProposalBlock(height uint64, signer *params.Singer) (*pb.Bl
 			Timestamp:        uint64(time.Now().Unix()),
 			Height:           height,
 			TransactionsRoot: hash.BytesToSha3(txRoot).Bytes(),
-			GasUsed:          res.GetQuotaUsed(),
-			GasLimit:         t.quotaLimit,
+			QuotaUsed:        res.GetQuotaUsed(),
+			QuotaLimit:       t.quotaLimit,
 			Proposer:         signer.Address().Bytes(),
 		},
 		Body: &pb.BlockBody{
