@@ -17,6 +17,7 @@ package tx
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/golang/protobuf/proto"
 
@@ -34,6 +35,7 @@ type Interface interface {
 	Add(ctx context.Context, signedTx *pb.SignedTransaction) error
 
 	GetByHash(ctx context.Context, hash hash.Hash) (*pb.SignedTransaction, error)
+	Get(ctx context.Context, hashes [][]byte) ([]*pb.SignedTransaction, error)
 	Exists(ctx context.Context, hash hash.Hash) (bool, error)
 }
 
@@ -66,6 +68,28 @@ func (db *txDB) GetByHash(ctx context.Context, hash hash.Hash) (*pb.SignedTransa
 	}
 
 	return &signedTx, nil
+}
+
+func (db *txDB) Get(ctx context.Context, hashes [][]byte) ([]*pb.SignedTransaction, error) {
+	data, err := db.raw.BatchGet(ctx, nsSignedTx, hashes)
+	if err != nil {
+		return nil, err
+	}
+
+	signedTxs := make([]*pb.SignedTransaction, len(data))
+	for i, d := range data {
+		if len(d) == 0 {
+			return nil, fmt.Errorf("tx hash %s not exists", hash.ToHex(signedTxs[i].GetTxHash()))
+		}
+		var signedTx pb.SignedTransaction
+		if err := proto.Unmarshal(d, &signedTx); err != nil {
+			return nil, err
+		}
+
+		signedTxs[i] = &signedTx
+	}
+
+	return signedTxs, nil
 }
 
 func (db *txDB) Exists(ctx context.Context, hash hash.Hash) (bool, error) {
