@@ -18,9 +18,11 @@ package block
 import (
 	"context"
 	"encoding/binary"
+	"math"
 
 	"github.com/golang/protobuf/proto"
 
+	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/database/raw"
 	"github.com/yejiayu/go-cita/pb"
 )
@@ -29,6 +31,8 @@ var (
 	nsBlockHeader  = "block.header"
 	nsBlockBody    = "block.body"
 	nsLatestHeight = "block.latest.height"
+
+	nsReceipts = "block.receipts"
 )
 
 type Interface interface {
@@ -36,7 +40,7 @@ type Interface interface {
 	GetBodyByHeight(ctx context.Context, height uint64) (*pb.BlockBody, error)
 	GetHeaderByLatest(ctx context.Context) (*pb.BlockHeader, error)
 
-	AddBlock(ctx context.Context, b *pb.Block) error
+	AddBlock(ctx context.Context, b *pb.Block, receipts []*pb.Receipt) error
 }
 
 func New(raw raw.Interface) Interface {
@@ -48,11 +52,21 @@ type blockDB struct {
 }
 
 func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*pb.BlockHeader, error) {
+	if height == math.MaxUint64 {
+		var err error
+		height, err = db.getLatest(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	data, err := db.raw.Get(ctx, nsBlockHeader, uint64ToBytes(height))
 	if err != nil {
 		return nil, err
 	}
-
+	if data == nil {
+		return nil, nil
+	}
 	var header pb.BlockHeader
 	if err := proto.Unmarshal(data, &header); err != nil {
 		return nil, err
@@ -81,13 +95,14 @@ func (db *blockDB) GetHeaderByLatest(ctx context.Context) (*pb.BlockHeader, erro
 		return nil, err
 	}
 	if height == 0 {
-		return nil, nil
+		return db.GetHeaderByHeight(ctx, height)
 	}
 
 	return db.GetHeaderByHeight(ctx, height)
 }
 
-func (db *blockDB) AddBlock(ctx context.Context, b *pb.Block) error {
+// TODO: transaction
+func (db *blockDB) AddBlock(ctx context.Context, b *pb.Block, receipts []*pb.Receipt) error {
 	header := b.GetHeader()
 	hData, err := proto.Marshal(header)
 	if err != nil {
@@ -108,14 +123,31 @@ func (db *blockDB) AddBlock(ctx context.Context, b *pb.Block) error {
 		}
 	}
 
-	if err := db.raw.Put(ctx, nsLatestHeight, []byte(""), uint64ToBytes(header.GetHeight())); err != nil {
+	if err := db.raw.Put(ctx, nsLatestHeight, []byte("latest"), uint64ToBytes(header.GetHeight())); err != nil {
 		return err
+	}
+
+	if len(receipts) > 0 {
+		receiptKeys := make([][]byte, len(receipts))
+		receiptValues := make([][]byte, len(receipts))
+
+		for i, receipt := range receipts {
+			value, err := proto.Marshal(receipt)
+			if err != nil {
+				return err
+			}
+			key := hash.BytesToSha3(value).Bytes()
+			receiptKeys[i] = key
+			receiptValues[i] = value
+		}
+
+		return db.raw.BatchPut(ctx, nsReceipts, receiptKeys, receiptValues)
 	}
 	return nil
 }
 
 func (db *blockDB) getLatest(ctx context.Context) (uint64, error) {
-	data, err := db.raw.Get(ctx, nsLatestHeight, []byte(""))
+	data, err := db.raw.Get(ctx, nsLatestHeight, []byte("latest"))
 	if err != nil {
 		return 0, err
 	}
