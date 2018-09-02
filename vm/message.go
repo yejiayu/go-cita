@@ -1,39 +1,29 @@
 package vm
 
 import (
-	"log"
 	"math/big"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/yejiayu/go-cita/pb"
 )
 
-func NewMessage(gasLimit uint64, signedTx *pb.SignedTransaction) *Message {
-	tx := signedTx.GetTransactionWithSig().GetTransaction()
-
-	nonce, err := strconv.Atoi(tx.GetNonce())
-	if err != nil {
-		log.Fatal(err)
-	}
-	amount := &big.Int{}
-	amount.SetBytes(tx.GetValue())
-
+func NewMessage(
+	from common.Address, to *common.Address,
+	data []byte, gasLimit uint64, value *big.Int,
+	txHash []byte,
+) *Message {
 	msg := &Message{
-		from:       common.BytesToAddress(signedTx.GetSigner()),
-		nonce:      uint64(nonce),
-		amount:     amount,
+		from:       from,
+		nonce:      1,
+		amount:     value,
 		gasLimit:   gasLimit,
 		gasPrice:   big.NewInt(0),
-		data:       tx.GetData(),
+		data:       data,
 		checkNonce: false,
-		txHash:     signedTx.GetTxHash(),
+		txHash:     txHash,
 	}
 
-	if tx.GetTo() != "" {
-		to := common.HexToAddress(tx.GetTo())
-		msg.to = &to
+	if to != nil {
+		msg.to = to
 	}
 
 	return msg

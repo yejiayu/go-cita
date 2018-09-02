@@ -28,6 +28,23 @@ func (a *account) Address() common.Address {
 	return a.Addr
 }
 
+func TestABI(t *testing.T) {
+	abi, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[],"name":"add","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"get","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	addData, err := abi.Pack("add")
+	if err != nil {
+		t.Fatal(err)
+	}
+	getData, err := abi.Pack("get")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(common.ToHex(addData))
+	t.Log(common.ToHex(getData))
+}
+
 func TestCall(t *testing.T) {
 	evm := newEvm(t)
 

@@ -2,11 +2,11 @@ package vm
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -15,6 +15,7 @@ import (
 	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
+	"github.com/yejiayu/go-cita/database/ethdb"
 	"github.com/yejiayu/go-cita/pb"
 
 	"github.com/yejiayu/go-cita/vm/evm"
@@ -22,34 +23,56 @@ import (
 
 type Executor interface {
 	Call(ctx context.Context, header *pb.BlockHeader, signedTxs []*pb.SignedTransaction) ([]*pb.Receipt, []byte, error)
+	StaticCall(ctx context.Context, height uint64, from, to, data []byte) ([]byte, error)
 }
 
 func NewExecutor(factory database.Factory) Executor {
-	return &executor{factory: factory}
+	return &executor{
+		ethDB:   factory.EthDB(),
+		blockDB: factory.BlockDB(),
+
+		chainConfig: params.MainnetChainConfig,
+	}
 }
 
 type executor struct {
-	factory database.Factory
+	ethDB   ethdb.Database
+	blockDB block.Interface
+
+	chainConfig *params.ChainConfig
 }
 
 func (e *executor) Call(ctx context.Context, header *pb.BlockHeader, signedTxs []*pb.SignedTransaction) ([]*pb.Receipt, []byte, error) {
 	rootHash := common.BytesToHash(header.GetStateRoot())
-	stateDB, err := state.New(rootHash, state.NewDatabase(e.factory.EthDB()))
+	stateDB, err := state.New(rootHash, state.NewDatabase(e.ethDB))
 	if err != nil {
 		return nil, nil, err
 	}
-	blockDB := e.factory.BlockDB()
 	blockHash := common.BytesToHash(header.Prevhash)
 
 	receipts := make([]*pb.Receipt, len(signedTxs))
 	for i, signedTx := range signedTxs {
 		snap := stateDB.Snapshot()
+		tx := signedTx.GetTransactionWithSig().GetTransaction()
 
-		msg := NewMessage(header.GetGasLimit(), signedTx)
-		vmCtx := NewVMContext(header, msg, blockDB)
+		var toAddr *common.Address
+		if tx.GetTo() != "" {
+			temp := common.HexToAddress(tx.GetTo())
+			toAddr = &temp
+		}
+		value := big.NewInt(0)
+		if len(tx.GetValue()) > 0 {
+			value = value.SetBytes(tx.GetValue())
+		}
+		msg := NewMessage(
+			common.BytesToAddress(signedTx.GetSigner()), toAddr,
+			tx.GetData(), header.GetGasLimit(), value,
+			signedTx.GetTxHash(),
+		)
+		vmCtx := NewVMContext(header, msg, e.blockDB)
 
 		stateDB.Prepare(common.BytesToHash(signedTx.GetTxHash()), blockHash, i)
-		evm := evm.New(vmCtx, stateDB, params.MainnetChainConfig, vm.Config{})
+		evm := evm.New(vmCtx, stateDB, e.chainConfig, vm.Config{})
 
 		receipt, err := e.applyMessage(stateDB, evm, msg)
 		if err != nil {
@@ -62,6 +85,35 @@ func (e *executor) Call(ctx context.Context, header *pb.BlockHeader, signedTxs [
 	stateDB.Commit(true)
 	stateDB.Database().TrieDB().Commit(root, true)
 	return receipts, root.Bytes(), nil
+}
+
+func (e *executor) StaticCall(ctx context.Context, height uint64, from, to, data []byte) ([]byte, error) {
+	header, err := e.blockDB.GetHeaderByHeight(ctx, height)
+	if err != nil {
+		return nil, err
+	}
+	if header == nil {
+		return nil, fmt.Errorf("not found header at height %d", height)
+	}
+
+	root := common.BytesToHash(header.GetStateRoot())
+	stateDB, err := state.New(root, state.NewDatabase(e.ethDB))
+	if err != nil {
+		return nil, err
+	}
+
+	fromAddr := common.BytesToAddress(from)
+	var toAddr *common.Address
+	if len(to) > 0 {
+		temp := common.BytesToAddress(to)
+		toAddr = &temp
+	}
+	msg := NewMessage(fromAddr, toAddr, data, header.GetGasLimit(), big.NewInt(0), []byte{})
+	vmCtx := NewVMContext(header, msg, e.blockDB)
+
+	evm := evm.New(vmCtx, stateDB, e.chainConfig, vm.Config{})
+	ret, _, err := evm.Call(vm.AccountRef(msg.From()), *msg.To(), msg.Data(), msg.Gas(), msg.Value())
+	return ret, err
 }
 
 func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Message) (*pb.Receipt, error) {
@@ -104,7 +156,7 @@ func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Messag
 	return receipt, err
 }
 
-func NewVMContext(header *pb.BlockHeader, msg core.Message, blockDB block.Interface) vm.Context {
+func NewVMContext(header *pb.BlockHeader, msg *Message, blockDB block.Interface) vm.Context {
 	blockNumber := &big.Int{}
 	blockNumber.SetUint64(header.GetHeight())
 

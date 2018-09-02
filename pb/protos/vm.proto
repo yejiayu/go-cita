@@ -28,6 +28,18 @@ message CallRes {
   bytes state_root = 2;
 }
 
+message StaticCallReq {
+  uint64 height = 1;
+  bytes from = 2;
+  bytes to = 3;
+  bytes data = 4;
+}
+
+message StaticCallRes {
+  bytes result = 1;
+}
+
 service VM {
   rpc Call(CallReq) returns (CallRes) {}
+  rpc StaticCall(StaticCallReq) returns (StaticCallRes) {}
 }
