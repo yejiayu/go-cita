@@ -8,6 +8,7 @@ import (
 
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/tx"
+	"github.com/yejiayu/go-cita/grpc/middleware/logger"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 
@@ -20,7 +21,9 @@ type Server interface {
 
 func NewServer(factory database.Factory) Server {
 	return &server{
-		grpcS:    grpc.NewServer(),
+		grpcS: grpc.NewServer(
+			grpc.UnaryInterceptor(loggger.NewServer()),
+		),
 		executor: NewExecutor(factory),
 
 		txDB: factory.TxDB(),

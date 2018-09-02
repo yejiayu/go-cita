@@ -81,7 +81,7 @@ func (p *noopPool) Add(ctx context.Context, signedTx *pb.SignedTransaction) erro
 	defer conn.Close()
 
 	_, err = redis.Int64(conn.Do("HSET", poolKey, txHash.String(), data))
-	return err
+	return p.txDB.Add(ctx, signedTx)
 }
 
 func (p *noopPool) Pull(ctx context.Context, count uint32) ([]*pb.SignedTransaction, error) {

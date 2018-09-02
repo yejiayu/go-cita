@@ -9,6 +9,7 @@ import (
 
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
+	"github.com/yejiayu/go-cita/grpc/middleware/logger"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 
@@ -20,13 +21,15 @@ type Server interface {
 	Run()
 }
 
-func New(dbFactory database.Factory) Server {
+func New(dbFactory database.Factory, vmClient pb.VMClient) Server {
 	return &server{
-		grpcS: grpc.NewServer(),
+		grpcS: grpc.NewServer(
+			grpc.UnaryInterceptor(loggger.NewServer()),
+		),
 
 		blockDB: dbFactory.BlockDB(),
 
-		svc: service.New(dbFactory),
+		svc: service.New(dbFactory, vmClient),
 	}
 }
 

@@ -91,19 +91,11 @@ func (t *tendermint) init() error {
 	if err != nil {
 		return err
 	}
-	var lastHeader *pb.BlockHeader
 	if res.GetHeader() == nil {
-		header, err := t.createGenesis(ctx)
-		if err != nil {
-			return err
-		}
-
-		lastHeader = header
-	} else {
-		lastHeader = res.GetHeader()
+		log.Panic("Please confirm the genesis block exists")
 	}
 
-	// lastHeader := res.GetHeader()
+	lastHeader := res.GetHeader()
 	lastHeaderHash, err := hash.ProtoToSha3(lastHeader)
 	if err != nil {
 		return err
@@ -120,27 +112,27 @@ func (t *tendermint) init() error {
 	return nil
 }
 
-func (t *tendermint) createGenesis(ctx context.Context) (*pb.BlockHeader, error) {
-	_, err := t.chainClient.NewBlock(ctx, &pb.NewBlockReq{
-		Block: &pb.Block{
-			Header: &pb.BlockHeader{
-				Height: 0,
-			},
-			Body: &pb.BlockBody{},
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := t.chainClient.GetBlockHeader(ctx, &pb.GetBlockHeaderReq{
-		Height: math.MaxUint64,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return res.GetHeader(), nil
-}
+// func (t *tendermint) createGenesis(ctx context.Context) (*pb.BlockHeader, error) {
+// 	_, err := t.chainClient.NewBlock(ctx, &pb.NewBlockReq{
+// 		Block: &pb.Block{
+// 			Header: &pb.BlockHeader{
+// 				Height: 0,
+// 			},
+// 			Body: &pb.BlockBody{},
+// 		},
+// 	})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+//
+// 	res, err := t.chainClient.GetBlockHeader(ctx, &pb.GetBlockHeaderReq{
+// 		Height: math.MaxUint64,
+// 	})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return res.GetHeader(), nil
+// }
 
 // SetProposal. RoundStepPropose -> RoundStepPrevote
 func (t *tendermint) SetProposal(ctx context.Context, proposal *pb.Proposal, signature []byte) error {

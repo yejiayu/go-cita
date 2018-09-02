@@ -35,11 +35,12 @@ import (
 )
 
 var (
-	errBadChainID    = errors.New("bad chain id")
-	errInvalidNonce  = errors.New("invalid nonce")
-	errInvalidSig    = errors.New("invalid sig")
-	errMoreThanQuota = errors.New("more than the quota")
-	errInvalidHashes = errors.New("invalid tx hashes")
+	errBadChainID       = errors.New("bad chain id")
+	errInvalidNonce     = errors.New("invalid nonce")
+	errInvalidSig       = errors.New("invalid sig")
+	errMoreThanQuota    = errors.New("more than the quota")
+	errInvalidHashes    = errors.New("invalid tx hashes")
+	errInvalidUnitBlock = errors.New("invalid uint block")
 )
 
 type Interface interface {
@@ -276,6 +277,18 @@ func (s *service) verifyTransaction(ctx context.Context, tx *pb.Transaction) err
 	}
 	if len(tx.GetNonce()) > nonceLenLimit {
 		return errInvalidNonce
+	}
+	header, err := s.blockDB.GetHeaderByLatest(ctx)
+	if err != nil {
+		return err
+	}
+	if header == nil {
+		return errors.New("latest header not found")
+	}
+
+	log.Info(tx.GetValidUntilBlock(), header.GetHeight())
+	if tx.GetValidUntilBlock() < header.GetHeight() || tx.GetValidUntilBlock() > header.GetHeight()+100 {
+		return errInvalidUnitBlock
 	}
 	return nil
 }
