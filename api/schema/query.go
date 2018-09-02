@@ -30,10 +30,8 @@ func NewQuery(r *resolvers.Resolver) *graphql.Object {
 				Type:    graphql.String,
 				Resolve: r.Query.Hello,
 			},
-			"LatestHeight": &graphql.Field{
-				Type:    types.Uint64,
-				Resolve: r.Query.LatestHeight,
-			},
+
+			// vm
 			"Call": &graphql.Field{
 				Type: types.Hex,
 				Args: graphql.FieldConfigArgument{
@@ -44,10 +42,23 @@ func NewQuery(r *resolvers.Resolver) *graphql.Object {
 				},
 				Resolve: r.Query.Call,
 			},
+
+			// chain
+			"LatestHeight": &graphql.Field{
+				Type:    types.Uint64,
+				Resolve: r.Query.LatestHeight,
+			},
+			"GetBlockHeader": &graphql.Field{
+				Type: types.BlockHeaderObject,
+				Args: graphql.FieldConfigArgument{
+					"height": &graphql.ArgumentConfig{Type: types.Uint64},
+				},
+				Resolve: r.Query.GetBlockHeader,
+			},
 			"GetReceipt": &graphql.Field{
 				Type: types.ReceiptObject,
 				Args: graphql.FieldConfigArgument{
-					"txHash": &graphql.ArgumentConfig{Type: types.Hex},
+					"txHash": &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.Hex)},
 				},
 				Resolve: r.Query.GetReceipt,
 			},

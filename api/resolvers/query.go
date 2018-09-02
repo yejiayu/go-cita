@@ -65,6 +65,38 @@ func (q *Query) Call(p graphql.ResolveParams) (interface{}, error) {
 	return common.ToHex(res.GetResult()), nil
 }
 
+func (q *Query) GetBlockHeader(p graphql.ResolveParams) (interface{}, error) {
+	var height uint64
+	data, ok := p.Args["height"]
+	if !ok {
+		height = math.MaxUint64
+	} else {
+		height = data.(uint64)
+	}
+
+	res, err := q.clients.chain.GetBlockHeader(p.Context, &pb.GetBlockHeaderReq{
+		Height: height,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pbHeader := res.GetHeader()
+
+	header := &types.BlockHeader{
+		Prevhash:        common.ToHex(pbHeader.GetPrevhash()),
+		Timestamp:       pbHeader.GetTimestamp(),
+		Height:          pbHeader.GetHeight(),
+		StateRoot:       common.ToHex(pbHeader.GetStateRoot()),
+		TransactionRoot: common.ToHex(pbHeader.GetTransactionsRoot()),
+		ReceiptsRoot:    common.ToHex(pbHeader.GetReceiptsRoot()),
+		QuotaUsed:       pbHeader.GetQuotaUsed(),
+		QuotaLimit:      pbHeader.GetQuotaLimit(),
+		Proposer:        common.ToHex(pbHeader.GetProposer()),
+	}
+	return header, nil
+}
+
 func (q *Query) GetReceipt(p graphql.ResolveParams) (interface{}, error) {
 	txHashHex := p.Args["txHash"].(string)
 	txHash := common.FromHex(txHashHex)
