@@ -13,6 +13,7 @@ type config struct {
 	DbURL    []string `env:"DB_URL" envSeparator:"," envDefault:"127.0.0.1:6379"`
 	RedisURL string   `env:"REDIS_URL" envDefault:"127.0.0.1:6379"`
 
+	Name      string `env:"NAME" envDefault:"auth"`
 	Port      string `env:"PORT" envDefault:"9001"`
 	PoolCount int    `env:"POOL_COUNT" envDefault:"50000"`
 
@@ -28,6 +29,10 @@ func init() {
 	}
 
 	log.Infof("The auth config is %+v", cfg)
+}
+
+func GetName() string {
+	return cfg.Name
 }
 
 func GetDbType() string {
