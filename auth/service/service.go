@@ -184,6 +184,11 @@ func (s *service) GetHashFromPool(ctx context.Context, count uint32, quotaLimit 
 		return nil, err
 	}
 
+	header, err := s.blockDB.GetHeaderByLatest(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var quotaCount uint64
 	var invalidHashes []hash.Hash
 	var validHashes []hash.Hash
@@ -191,11 +196,11 @@ func (s *service) GetHashFromPool(ctx context.Context, count uint32, quotaLimit 
 		tx := signedTx.GetTransactionWithSig().GetTransaction()
 		txHash := hash.BytesToHash(signedTx.GetTxHash())
 
-		// // check valid_until_block
-		// if tx.GetValidUntilBlock() < header.GetHeight() {
-		// 	invalidHashes = append(invalidHashes, txHash)
-		// 	continue
-		// }
+		// check valid_until_block
+		if tx.GetValidUntilBlock() < header.GetHeight() {
+			invalidHashes = append(invalidHashes, txHash)
+			continue
+		}
 
 		quotaCount += tx.GetQuota()
 		// check quota limit
@@ -286,7 +291,6 @@ func (s *service) verifyTransaction(ctx context.Context, tx *pb.Transaction) err
 		return errors.New("latest header not found")
 	}
 
-	log.Info(tx.GetValidUntilBlock(), header.GetHeight())
 	if tx.GetValidUntilBlock() < header.GetHeight() || tx.GetValidUntilBlock() > header.GetHeight()+100 {
 		return errInvalidUnitBlock
 	}

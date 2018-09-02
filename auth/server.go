@@ -94,6 +94,7 @@ func (s *server) GetTxFromPool(ctx context.Context, req *pb.GetTxFromPoolReq) (*
 		return nil, err
 	}
 
+	log.Infof("auth.GetTxFromPool hashes lenth is %d, quota limit is %d, count is %d", len(hashes), req.GetQuotaLimit(), req.GetTxCount())
 	return &pb.GetTxFromPoolRes{
 		TxHashes: hash.HashesToBytesS(hashes),
 	}, nil
