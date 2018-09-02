@@ -68,7 +68,7 @@ func (e *executor) Call(ctx context.Context, header *pb.BlockHeader, signedTxs [
 		}
 		msg := NewMessage(
 			common.BytesToAddress(signedTx.GetSigner()), toAddr,
-			tx.GetData(), header.GetGasLimit(), value,
+			tx.GetData(), tx.GetQuota(), value,
 			signedTx.GetTxHash(),
 		)
 		vmCtx := NewVMContext(header, msg, e.blockDB)
@@ -119,8 +119,14 @@ func (e *executor) StaticCall(ctx context.Context, height uint64, from, to, data
 }
 
 func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Message) (*pb.Receipt, error) {
+	defer stateDB.Finalise(true)
+
 	sender := vm.AccountRef(msg.From())
-	receipt := &pb.Receipt{StateRoot: []byte{}}
+	receipt := &pb.Receipt{
+		StateRoot:       []byte{},
+		TransactionHash: msg.TxHash(),
+	}
+
 	var quotaUsed uint64
 	var err error
 
@@ -131,11 +137,10 @@ func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Messag
 	} else {
 		_, quotaUsed, err = evm.Call(sender, *msg.To(), msg.Data(), msg.Gas(), msg.Value())
 	}
-	stateDB.Finalise(true)
 	if err != nil {
 		receipt.Error = err.Error()
 	}
-	receipt.GasUsed = quotaUsed
+	receipt.GasUsed = msg.Gas() - quotaUsed
 	ethLogs := stateDB.GetLogs(common.BytesToHash(msg.TxHash()))
 	logs := make([]*pb.LogEntry, len(ethLogs))
 	for i, l := range ethLogs {
