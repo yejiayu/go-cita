@@ -46,7 +46,7 @@ func (c *cache) GetPublicKey(ctx context.Context, hash hash.Hash) (*ecdsa.Public
 	span.SetTag("tx_hash", hash.String())
 
 	reply, err := redis.Bytes(c.conn.Do("HGET", "tx.pk", hash.String()))
-	if err != nil {
+	if err != nil && err != redis.ErrNil {
 		return nil, err
 	}
 

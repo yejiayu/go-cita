@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
-	"github.com/pkg/errors"
 
 	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/database/tx"
@@ -218,7 +217,7 @@ func (p *noopPool) exists(ctx context.Context, hash hash.Hash) (bool, error) {
 
 	exists, err := redis.Bool(conn.Do("HEXISTS", poolKey, hash.String()))
 	if err != nil && err != redis.ErrNil {
-		return false, errors.WithStack(err)
+		return false, err
 	}
 	if exists {
 		return true, nil
