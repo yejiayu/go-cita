@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -73,6 +74,72 @@ func (db *db) Delete(ctx context.Context, namespace string, key []byte) error {
 	return err
 }
 
+func (db *db) BatchGet(ctx context.Context, namespace string, keys [][]byte) ([][]byte, error) {
+	if len(keys) == 0 {
+		return nil, nil
+	}
+
+	conn, err := db.connPool.GetContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	redisKeys := make([]interface{}, len(keys)+1)
+	redisKeys[0] = namespace
+	for i, key := range keys {
+		redisKeys[i+1] = key
+	}
+	return redis.ByteSlices(conn.Do("HMGET", redisKeys...))
+}
+
+func (db *db) BatchPut(ctx context.Context, namespace string, keys, values [][]byte) error {
+	if len(keys) == 0 || len(values) == 0 {
+		return nil
+	}
+	if len(keys) != len(values) {
+		return errors.New("batch put The length of the key must be the same as the value")
+	}
+
+	conn, err := db.connPool.GetContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	lenth := len(keys)
+	redisKeys := make([]interface{}, lenth*2+1)
+	redisKeys[0] = namespace
+
+	for i := 1; i <= lenth; i++ {
+		redisKeys[2*i-1] = keys[i-1]
+		redisKeys[2*i] = values[i-1]
+	}
+
+	_, err = conn.Do("HMSET", redisKeys...)
+	return err
+}
+
+func (db *db) BatchDelete(ctx context.Context, namespace string, keys [][]byte) error {
+	conn, err := db.connPool.GetContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	redisKeys := make([]interface{}, len(keys)+1)
+	redisKeys[0] = namespace
+	for i, key := range keys {
+		redisKeys[i+1] = key
+	}
+	_, err = conn.Do("HDEL", redisKeys...)
+	return err
+}
+
 func (db *db) Scan(ctx context.Context, namespace string, prefix []byte, limit int) ([][]byte, [][]byte, error) {
 	return nil, nil, nil
+}
+
+func (db *db) Close() error {
+	return db.connPool.Close()
 }

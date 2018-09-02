@@ -47,6 +47,22 @@ func (db *db) Scan(ctx context.Context, namespace string, prefix []byte, limit i
 	return db.client.Scan(buildKey(namespace, prefix), limit)
 }
 
+func (db *db) BatchGet(ctx context.Context, namespace string, keys [][]byte) ([][]byte, error) {
+	return nil, nil
+}
+
+func (db *db) BatchPut(ctx context.Context, namespace string, keys, values [][]byte) error {
+	return nil
+}
+
+func (db *db) BatchDelete(ctx context.Context, namespace string, keys [][]byte) error {
+	return nil
+}
+
+func (db *db) Close() error {
+	return db.client.Close()
+}
+
 func buildKey(namespace string, key []byte) []byte {
 	if key != nil {
 		return append([]byte(namespace), key...)
