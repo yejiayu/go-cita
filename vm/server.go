@@ -66,3 +66,12 @@ func (s *server) Call(ctx context.Context, req *pb.CallReq) (*pb.CallRes, error)
 
 	return &pb.CallRes{Receipts: repiects, StateRoot: root}, nil
 }
+
+func (s *server) StaticCall(ctx context.Context, req *pb.StaticCallReq) (*pb.StaticCallRes, error) {
+	ret, err := s.executor.StaticCall(ctx, req.GetHeight(), req.GetFrom(), req.GetTo(), req.GetData())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.StaticCallRes{Result: ret}, nil
+}
