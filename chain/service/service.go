@@ -20,6 +20,8 @@ type Interface interface {
 	GetValidators(ctx context.Context, height uint64) ([][]byte, error)
 
 	NewBlock(ctx context.Context, block *pb.Block) error
+
+	GetReceipt(ctx context.Context, txHash hash.Hash) (*pb.Receipt, error)
 }
 
 func New(dbFactory database.Factory, vmClient pb.VMClient) Interface {
@@ -82,4 +84,8 @@ func (svc *service) NewBlock(ctx context.Context, block *pb.Block) error {
 	block.GetHeader().StateRoot = res.GetStateRoot()
 
 	return svc.blockDB.AddBlock(ctx, block, res.GetReceipts())
+}
+
+func (svc *service) GetReceipt(ctx context.Context, txHash hash.Hash) (*pb.Receipt, error) {
+	return svc.blockDB.GetReceipt(ctx, txHash)
 }

@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
 	"github.com/yejiayu/go-cita/grpc/middleware/logger"
@@ -83,4 +84,13 @@ func (s *server) GetBlockHeader(ctx context.Context, req *pb.GetBlockHeaderReq) 
 		return nil, err
 	}
 	return &pb.GetBlockHeaderRes{Header: header}, nil
+}
+
+func (s *server) GetReceipt(ctx context.Context, req *pb.GetReceiptReq) (*pb.GetReceiptRes, error) {
+	receipt, err := s.svc.GetReceipt(ctx, hash.BytesToHash(req.GetTxHash()))
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetReceiptRes{Receipt: receipt}, nil
 }

@@ -41,6 +41,8 @@ type Interface interface {
 	GetHeaderByLatest(ctx context.Context) (*pb.BlockHeader, error)
 
 	AddBlock(ctx context.Context, b *pb.Block, receipts []*pb.Receipt) error
+
+	GetReceipt(ctx context.Context, txHash hash.Hash) (*pb.Receipt, error)
 }
 
 func New(raw raw.Interface) Interface {
@@ -136,14 +138,27 @@ func (db *blockDB) AddBlock(ctx context.Context, b *pb.Block, receipts []*pb.Rec
 			if err != nil {
 				return err
 			}
-			key := hash.BytesToSha3(value).Bytes()
-			receiptKeys[i] = key
+			receiptKeys[i] = receipt.GetTransactionHash()
 			receiptValues[i] = value
 		}
 
 		return db.raw.BatchPut(ctx, nsReceipts, receiptKeys, receiptValues)
 	}
 	return nil
+}
+
+func (db *blockDB) GetReceipt(ctx context.Context, txHash hash.Hash) (*pb.Receipt, error) {
+	data, err := db.raw.Get(ctx, nsReceipts, txHash.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	var receipt pb.Receipt
+	err = proto.Unmarshal(data, &receipt)
+	return &receipt, err
 }
 
 func (db *blockDB) getLatest(ctx context.Context) (uint64, error) {

@@ -44,6 +44,13 @@ func NewQuery(r *resolvers.Resolver) *graphql.Object {
 				},
 				Resolve: r.Query.Call,
 			},
+			"GetReceipt": &graphql.Field{
+				Type: types.ReceiptObject,
+				Args: graphql.FieldConfigArgument{
+					"txHash": &graphql.ArgumentConfig{Type: types.Hex},
+				},
+				Resolve: r.Query.GetReceipt,
+			},
 		},
 	})
 }

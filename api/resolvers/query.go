@@ -20,8 +20,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/graphql-go/graphql"
-	ot "github.com/opentracing/opentracing-go"
 
+	"github.com/yejiayu/go-cita/api/schema/types"
 	"github.com/yejiayu/go-cita/pb"
 )
 
@@ -30,9 +30,6 @@ type Query struct {
 }
 
 func (q *Query) Hello(p graphql.ResolveParams) (interface{}, error) {
-	span, _ := ot.StartSpanFromContext(p.Context, "hello")
-	defer span.Finish()
-
 	return "hello", nil
 }
 
@@ -66,4 +63,44 @@ func (q *Query) Call(p graphql.ResolveParams) (interface{}, error) {
 	}
 
 	return common.ToHex(res.GetResult()), nil
+}
+
+func (q *Query) GetReceipt(p graphql.ResolveParams) (interface{}, error) {
+	txHashHex := p.Args["txHash"].(string)
+	txHash := common.FromHex(txHashHex)
+
+	res, err := q.clients.chain.GetReceipt(p.Context, &pb.GetReceiptReq{TxHash: txHash})
+	if err != nil {
+		return nil, err
+	}
+
+	pbReceipt := res.GetReceipt()
+	receipt := &types.Receipt{
+		QuotaUsed:       pbReceipt.GetGasUsed(),
+		LogBloom:        common.ToHex(pbReceipt.GetLogBloom()),
+		Error:           pbReceipt.GetError(),
+		TransactionHash: common.ToHex(pbReceipt.GetTransactionHash()),
+	}
+	if len(pbReceipt.GetContractAddress()) > 0 {
+		receipt.ContractAddress = common.ToHex(pbReceipt.GetContractAddress())
+	}
+	if len(pbReceipt.GetLogs()) > 0 {
+		logs := make([]*types.LogEntry, len(pbReceipt.GetLogs()))
+		for i, l := range pbReceipt.GetLogs() {
+			log := &types.LogEntry{
+				Address: common.ToHex(l.GetAddress()),
+				Data:    common.ToHex(l.GetData()),
+			}
+
+			if len(l.GetTopics()) > 0 {
+				topics := make([]string, len(l.GetTopics()))
+				for i, topic := range l.GetTopics() {
+					topics[i] = common.ToHex(topic)
+				}
+				log.Topics = topics
+			}
+			logs[i] = log
+		}
+	}
+	return receipt, nil
 }
