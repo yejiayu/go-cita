@@ -16,6 +16,7 @@
 package main
 
 import (
+	"github.com/yejiayu/go-cita/clients"
 	"github.com/yejiayu/go-cita/common/tracing"
 	"github.com/yejiayu/go-cita/log"
 
@@ -25,7 +26,7 @@ import (
 )
 
 func main() {
-	otClose, err := tracing.Configure("cita-consensus", cfg.GetTracingURL())
+	otClose, err := tracing.Configure("cita-chain", cfg.GetTracingURL())
 	if err != nil {
 		log.Error(err)
 	} else {
@@ -36,6 +37,7 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+	vmClient := clients.NewVMClient(cfg.GetVMURL())
 
-	chain.New(factory).Run()
+	chain.New(factory, vmClient).Run()
 }

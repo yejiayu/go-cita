@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/yejiayu/go-cita/common/hash"
+	"github.com/yejiayu/go-cita/grpc/middleware/logger"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 
@@ -48,8 +49,10 @@ func New(dbFactory database.Factory, networkClient pb.NetworkClient) Server {
 	svc := service.New(dbFactory, networkClient, cache, pool)
 
 	return &server{
-		grpcS: grpc.NewServer(),
-		svc:   svc,
+		grpcS: grpc.NewServer(
+			grpc.UnaryInterceptor(loggger.NewServer()),
+		),
+		svc: svc,
 	}
 }
 
@@ -75,6 +78,7 @@ func (s *server) Run() {
 }
 
 func (s *server) AddUnverifyTx(ctx context.Context, req *pb.AddUnverifyTxReq) (*pb.AddUnverifyTxRes, error) {
+	log.Infof("%+v", req.GetUntx())
 	hash, err := s.svc.AddUnverifyTx(ctx, req.GetUntx())
 	if err != nil {
 		return nil, err

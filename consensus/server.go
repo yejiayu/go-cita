@@ -23,6 +23,7 @@ import (
 
 	"github.com/yejiayu/go-cita/clients"
 	cfg "github.com/yejiayu/go-cita/config/consensus"
+	"github.com/yejiayu/go-cita/grpc/middleware/logger"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 
@@ -35,7 +36,9 @@ type Server interface {
 
 func New() Server {
 	return &server{
-		grpcS: grpc.NewServer(),
+		grpcS: grpc.NewServer(
+			grpc.UnaryInterceptor(loggger.NewServer()),
+		),
 		tendermint: tendermint.New(
 			clients.NewAuthClient(cfg.GetAuthURL()),
 			clients.NewChainClient(cfg.GetChainURL()),

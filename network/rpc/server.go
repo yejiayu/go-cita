@@ -21,6 +21,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/yejiayu/go-cita/grpc/middleware/logger"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
 
@@ -35,8 +36,10 @@ type Server interface {
 
 func New() Server {
 	return &server{
-		grpcS: grpc.NewServer(),
-		m:     connection.NewManager(),
+		grpcS: grpc.NewServer(
+			grpc.UnaryInterceptor(loggger.NewServer()),
+		),
+		m: connection.NewManager(),
 	}
 }
 
