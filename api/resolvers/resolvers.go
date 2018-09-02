@@ -16,8 +16,6 @@
 package resolvers
 
 import (
-	"google.golang.org/grpc"
-
 	"github.com/yejiayu/go-cita/pb"
 )
 
@@ -29,28 +27,22 @@ type Resolver struct {
 type clients struct {
 	auth  pb.AuthClient
 	chain pb.ChainClient
+	vm    pb.VMClient
 }
 
-func New(authClient, chainClient string) (*Resolver, error) {
-	conn, err := grpc.Dial(authClient, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	auth := pb.NewAuthClient(conn)
-
-	conn, err = grpc.Dial(chainClient, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	chain := pb.NewChainClient(conn)
-
+func New(
+	authClient pb.AuthClient,
+	chainClient pb.ChainClient,
+	vmClient pb.VMClient,
+) *Resolver {
 	cs := &clients{
-		auth:  auth,
-		chain: chain,
+		auth:  authClient,
+		chain: chainClient,
+		vm:    vmClient,
 	}
 
 	return &Resolver{
 		Mutation: &Mutation{clients: cs},
 		Query:    &Query{clients: cs},
-	}, nil
+	}
 }

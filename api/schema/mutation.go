@@ -35,6 +35,23 @@ func NewMutation(r *resolvers.Resolver) *graphql.Object {
 				},
 				Resolve: r.Mutation.SendTransaction,
 			},
+			"SendRawTransaction": &graphql.Field{
+				Type: types.Hash,
+				Args: graphql.FieldConfigArgument{
+					"data": &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.Hex)},
+				},
+				Resolve: r.Mutation.SendRawTransaction,
+			},
+			"SendUnsafeTransaction": &graphql.Field{
+				Type:              types.Hash,
+				DeprecationReason: "Warning!! This will give away your private key and should never be used in a production environment",
+				Args: graphql.FieldConfigArgument{
+					"transaction": &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.TransactionInput)},
+					"privateKey":  &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.Hex)},
+					"crypto":      &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.CryptoEnum)},
+				},
+				Resolve: r.Mutation.SendUnsafeTransaction,
+			},
 		},
 	})
 }
