@@ -18,6 +18,7 @@ package crypto
 
 import (
 	"crypto/ecdsa"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -43,6 +44,9 @@ func Sign(hash hash.Hash, prv *ecdsa.PrivateKey) (sig []byte, err error) {
 
 // HexToECDSA parses a secp256k1 private key.
 func HexToECDSA(hexkey string) (*ecdsa.PrivateKey, error) {
+	if strings.HasPrefix(hexkey, "0x") {
+		hexkey = hexkey[2:]
+	}
 	return crypto.HexToECDSA(hexkey)
 }
 
