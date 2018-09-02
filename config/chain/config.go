@@ -12,7 +12,10 @@ type config struct {
 	DbType string   `env:"DB_TYPE" envDefault:"redis"`
 	DbURL  []string `env:"DB_URL" envSeparator:"," envDefault:"127.0.0.1:6379"`
 
+	Name string `env:"NAME" envDefault:"chain"`
 	Port string `env:"PORT" envDefault:"9002"`
+
+	VMURL string `env:"VM_URL" envDefault:"127.0.0.1:9003"`
 
 	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
 }
@@ -26,6 +29,10 @@ func init() {
 	log.Infof("The chain config is %+v", cfg)
 }
 
+func GetChain() string {
+	return cfg.Name
+}
+
 func GetDbType() string {
 	return cfg.DbType
 }
@@ -36,6 +43,10 @@ func GetDbURL() []string {
 
 func GetPort() string {
 	return cfg.Port
+}
+
+func GetVMURL() string {
+	return cfg.VMURL
 }
 
 func GetTracingURL() string {

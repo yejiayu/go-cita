@@ -16,6 +16,7 @@ type config struct {
 	QuotaLimit int    `env:"QUOTA_LIMIT" envDefault:"99999"`
 	TxCount    int    `env:"TX_COUNT" envDefault:"20000"`
 
+	Name string `env:"NAME" envDefault:"consensus"`
 	Port string `env:"PORT" envDefault:"8001"`
 
 	AuthURL    string `env:"AUTH_URL" envDefault:"127.0.0.1:9001"`
@@ -32,6 +33,10 @@ func init() {
 	}
 
 	log.Infof("consensus config %+v", cfg)
+}
+
+func GetName() string {
+	return cfg.Name
 }
 
 func GetQuotaLimit() uint64 {

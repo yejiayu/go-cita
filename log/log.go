@@ -12,7 +12,9 @@ var level = strings.ToLower(os.Getenv("LOG_LEVEL"))
 
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
-	logging.SetFormatter(&logging.TextFormatter{})
+	logging.SetFormatter(&logging.TextFormatter{
+		FullTimestamp: true,
+	})
 
 	// Output to stdout instead of the default stderr
 	// Can be any io.Writer, see below for File example
@@ -97,10 +99,10 @@ func Debugf(format string, args ...interface{}) {
 
 // Panic logs a message at level Panic on the standard logger.
 func Panic(args ...interface{}) {
-	logging.Panic(args)
+	logging.Panic(args...)
 }
 
 // Panicf logs a message at level Panic on the standard logger.
 func Panicf(format string, args ...interface{}) {
-	logging.Panicf(format, args)
+	logging.Panicf(format, args...)
 }

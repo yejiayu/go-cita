@@ -9,6 +9,7 @@ import (
 var cfg *config
 
 type config struct {
+	Name         string `env:"NAME" envDefault:"network"`
 	RPCPort      string `env:"RPC_PORT" envDefault:"7001"`
 	ExternalPort string `env:"EXTERNAL_PORT" envDefault:"7000"`
 	ID           uint32 `env:"ID"`
@@ -29,6 +30,10 @@ func init() {
 	}
 
 	log.Infof("The network config %+v", cfg)
+}
+
+func GetName() string {
+	return cfg.Name
 }
 
 func GetRPCPort() string {

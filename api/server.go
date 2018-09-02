@@ -18,27 +18,44 @@ package api
 import (
 	"net/http"
 
-	"github.com/golang/glog"
+	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
+
 	"github.com/yejiayu/go-cita/log"
+	"github.com/yejiayu/go-cita/pb"
 
 	"github.com/yejiayu/go-cita/api/resolvers"
 	"github.com/yejiayu/go-cita/api/schema"
+	cfg "github.com/yejiayu/go-cita/config/api"
 )
 
-func New(port, authClient, chainClient string) error {
-	r, err := resolvers.New(authClient, chainClient)
-	if err != nil {
-		return err
-	}
+type Server interface {
+	Run()
+}
+
+func NewServer(
+	authClient pb.AuthClient,
+	chainClient pb.ChainClient,
+	vmClient pb.VMClient,
+) Server {
+	r := resolvers.New(authClient, chainClient, vmClient)
 
 	schema, err := schema.NewSchema(r)
 	if err != nil {
-		glog.Fatal(err)
+		log.Panic(err)
 	}
+	return &server{schema: &schema}
+}
+
+type server struct {
+	schema *graphql.Schema
+}
+
+func (s *server) Run() {
+	port := cfg.GetPort()
 
 	h := handler.New(&handler.Config{
-		Schema:   &schema,
+		Schema:   s.schema,
 		Pretty:   true,
 		GraphiQL: true,
 	})
@@ -47,5 +64,7 @@ func New(port, authClient, chainClient string) error {
 	http.Handle("/", h)
 
 	log.Infof("The api server listens on port %s", port)
-	return http.ListenAndServe(":"+port, nil)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Panic(err)
+	}
 }

@@ -34,6 +34,16 @@ func NewQuery(r *resolvers.Resolver) *graphql.Object {
 				Type:    types.Uint64,
 				Resolve: r.Query.LatestHeight,
 			},
+			"Call": &graphql.Field{
+				Type: types.Hex,
+				Args: graphql.FieldConfigArgument{
+					"height": &graphql.ArgumentConfig{Type: types.Uint64},
+					"from":   &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.Hex)},
+					"to":     &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.Hex)},
+					"data":   &graphql.ArgumentConfig{Type: graphql.NewNonNull(types.Hex)},
+				},
+				Resolve: r.Query.Call,
+			},
 		},
 	})
 }

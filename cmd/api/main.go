@@ -16,41 +16,26 @@
 package main
 
 import (
-	"flag"
-
-	"github.com/caarlos0/env"
-
-	"github.com/yejiayu/go-cita/api"
+	"github.com/yejiayu/go-cita/clients"
 	"github.com/yejiayu/go-cita/common/tracing"
 	"github.com/yejiayu/go-cita/log"
+
+	"github.com/yejiayu/go-cita/api"
+	cfg "github.com/yejiayu/go-cita/config/api"
 )
 
-type config struct {
-	Port string `env:"PORT" envDefault:"8000"`
-
-	AuthURL    string `env:"AUTH_URL" envDefault:"127.0.0.1:8001"`
-	ChainURL   string `env:"CHAIN_URL" envDefault:"127.0.0.1:8003"`
-	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
-}
-
 func main() {
-	flag.Parse()
-
-	cfg := config{}
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	log.Infof("api config %+v", cfg)
-	otClose, err := tracing.Configure("cita-api", cfg.TracingURL)
+	otClose, err := tracing.Configure("cita-api-graphql", cfg.GetTracingURL())
 	if err != nil {
 		log.Error(err)
 	} else {
 		defer otClose.Close()
 	}
 
-	if err := api.New(cfg.Port, cfg.AuthURL, cfg.ChainURL); err != nil {
-		log.Panic(err)
-	}
+	authClient := clients.NewAuthClient(cfg.GetAuthURL())
+	chainClient := clients.NewChainClient(cfg.GetChainURL())
+	vmClient := clients.NewVMClient(cfg.GetVMURL())
+
+	server := api.NewServer(authClient, chainClient, vmClient)
+	server.Run()
 }

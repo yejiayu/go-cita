@@ -26,7 +26,7 @@ type Transaction struct {
 	Quota           uint64         `json:"quota" mapstructure:"quota"`
 	ValidUntilBlock uint64         `json:"valid_until_block" mapstructure:"valid_until_block"`
 	Data            string         `json:"data" mapstructure:"data"`
-	Value           uint64         `json:"value" mapstructure:"value"`
+	Value           string         `json:"value" mapstructure:"value"`
 	ChainID         uint32         `json:"chain_id" mapstructure:"chain_id"`
 	Version         uint32         `json:"version" mapstructure:"version"`
 }
@@ -35,13 +35,13 @@ var TransactionObject = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Transaction",
 	Fields: graphql.Fields{
 		"to":                {Type: Address},
-		"nonce":             {Type: graphql.NewNonNull(graphql.String)},
+		"nonce":             {Type: graphql.String},
 		"quota":             {Type: graphql.NewNonNull(Uint64)},
-		"valid_until_block": {Type: graphql.NewNonNull(Uint64)},
+		"valid_until_block": {Type: Uint64},
 		"data":              {Type: Hex},
-		"value":             {Type: Uint64},
+		"value":             {Type: Hex},
 		"chain_id":          {Type: graphql.NewNonNull(Uint32)},
-		"version":           {Type: graphql.NewNonNull(Uint32)},
+		"version":           {Type: Uint32},
 	},
 })
 
@@ -59,16 +59,22 @@ type UnverifiedTransaction struct {
 	Signature   string      `json:"signature" mapstructure:"signature"`
 }
 
+type UnsafeTransaction struct {
+	Transaction Transaction `json:"transaction" mapstructure:"transaction"`
+	Crypto      int32       `json:"crypto" mapstructure:"crypto"`
+	PrivateKey  string      `json:"privateKey" mapstructure:"privateKey"`
+}
+
 var TransactionInput = graphql.NewInputObject(graphql.InputObjectConfig{
 	Name: "TransactionInput",
 	Fields: graphql.InputObjectConfigFieldMap{
 		"to":                {Type: Address},
-		"nonce":             {Type: graphql.NewNonNull(graphql.String)},
+		"nonce":             {Type: graphql.String},
 		"quota":             {Type: graphql.NewNonNull(Uint64)},
-		"valid_until_block": {Type: graphql.NewNonNull(Uint64)},
+		"valid_until_block": {Type: Uint64},
 		"data":              {Type: Hex},
-		"value":             {Type: Uint64},
+		"value":             {Type: Hex},
 		"chain_id":          {Type: graphql.NewNonNull(Uint32)},
-		"version":           {Type: graphql.NewNonNull(Uint32)},
+		"version":           {Type: Uint32},
 	},
 })

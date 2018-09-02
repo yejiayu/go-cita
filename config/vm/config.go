@@ -12,6 +12,7 @@ type config struct {
 	DbType string   `env:"DB_TYPE" envDefault:"redis"`
 	DbURL  []string `env:"DB_URL" envSeparator:"," envDefault:"127.0.0.1:6379"`
 
+	Name        string `env:"NAME" envDefault:"vm"`
 	Port        string `env:"Port" envDefault:"9003"`
 	GenesisPath string `env:"GENESIS_PATH" envDefault:"genesis.json"`
 
@@ -25,6 +26,10 @@ func init() {
 	}
 
 	log.Infof("The network config %+v", cfg)
+}
+
+func GetName() string {
+	return cfg.Name
 }
 
 func GetDBType() string {
