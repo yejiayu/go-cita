@@ -58,7 +58,9 @@ func (e *executor) Call(ctx context.Context, header *pb.BlockHeader, signedTxs [
 		var toAddr *common.Address
 		if tx.GetTo() != "" {
 			temp := common.HexToAddress(tx.GetTo())
-			toAddr = &temp
+			if (common.Address{}) != temp {
+				toAddr = &temp
+			}
 		}
 		value := big.NewInt(0)
 		if len(tx.GetValue()) > 0 {
