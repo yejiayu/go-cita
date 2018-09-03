@@ -24,6 +24,7 @@ type Receipt struct {
 	Quota           uint64      `json:"quota" mapstructure:"quota"`
 	LogBloom        string      `json:"log_bloom" mapstructure:"log_bloom"`
 	Error           string      `json:"error" mapstructure:"error"`
+	StateRoot       string      `json:"state_root" mapstructure:"state_root"`
 	TransactionHash string      `json:"transaction_hash" mapstructure:"transaction_hash"`
 	ContractAddress string      `json:"contract_address" mapstructure:"contract_address"`
 	Logs            []*LogEntry `json:"logs" mapstructure:"logs"`
@@ -42,6 +43,7 @@ var ReceiptObject = graphql.NewObject(graphql.ObjectConfig{
 		"quota":            {Type: Uint64},
 		"log_bloom":        {Type: Hex},
 		"error":            {Type: graphql.String},
+		"state_root":       {Type: graphql.String},
 		"transaction_hash": {Type: Hex},
 		"contract_address": {Type: Hex},
 		"logs":             {Type: graphql.NewList(LogEntryObject)},

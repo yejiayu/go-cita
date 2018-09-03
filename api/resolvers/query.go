@@ -81,6 +81,7 @@ func (q *Query) GetReceipt(p graphql.ResolveParams) (interface{}, error) {
 		LogBloom:        common.ToHex(pbReceipt.GetLogBloom()),
 		Error:           pbReceipt.GetError(),
 		TransactionHash: common.ToHex(pbReceipt.GetTransactionHash()),
+		StateRoot:       common.ToHex(pbReceipt.GetStateRoot()),
 	}
 	if len(pbReceipt.GetContractAddress()) > 0 {
 		receipt.ContractAddress = common.ToHex(pbReceipt.GetContractAddress())
@@ -102,6 +103,7 @@ func (q *Query) GetReceipt(p graphql.ResolveParams) (interface{}, error) {
 			}
 			logs[i] = log
 		}
+		receipt.Logs = logs
 	}
 	return receipt, nil
 }
