@@ -1,29 +1,62 @@
 package merkle
 
 import (
-	"reflect"
-
-	"github.com/cbergoon/merkletree"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+
+	"github.com/yejiayu/go-cita/common/hash"
+	"github.com/yejiayu/go-cita/pb"
 )
 
-type Content struct {
-	In []byte
+type DerivableList interface {
+	Len() int
+	GetRlp(i int) []byte
 }
 
-func (c Content) CalculateHash() ([]byte, error) {
-	return rlp.EncodeToBytes(c.In)
+type transactions struct {
+	txHashes []hash.Hash
 }
 
-func (c Content) Equals(other merkletree.Content) (bool, error) {
-	return reflect.DeepEqual(c.In, other.(Content).In), nil
+func (list *transactions) Len() int {
+	return len(list.txHashes)
 }
 
-func New(data [][]byte) (*merkletree.MerkleTree, error) {
-	var list []merkletree.Content
-	for _, d := range data {
-		list = append(list, Content{In: d})
+func (list *transactions) GetRlp(i int) []byte {
+	txHash := list.txHashes[i]
+	enc, _ := rlp.EncodeToBytes(txHash)
+	return enc
+}
+
+func TransactionsToRoot(txHashes []hash.Hash) hash.Hash {
+	if len(txHashes) == 0 {
+		return hash.Hash{}
 	}
 
-	return merkletree.NewTree(list)
+	list := &transactions{txHashes: txHashes}
+	root := types.DeriveSha(list)
+	return hash.BytesToHash(root.Bytes())
+}
+
+type receipts struct {
+	receipts []*pb.Receipt
+}
+
+func (list *receipts) Len() int {
+	return len(list.receipts)
+}
+
+func (list *receipts) GetRlp(i int) []byte {
+	receipt := list.receipts[i]
+	enc, _ := rlp.EncodeToBytes(receipt)
+	return enc
+}
+
+func ReceiptsToRoot(rs []*pb.Receipt) hash.Hash {
+	if len(rs) == 0 {
+		return hash.Hash{}
+	}
+
+	list := &receipts{receipts: rs}
+	root := types.DeriveSha(list)
+	return hash.BytesToHash(root.Bytes())
 }

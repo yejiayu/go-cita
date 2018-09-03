@@ -4,13 +4,13 @@ import (
 	"context"
 	"math"
 
-	"github.com/golang/protobuf/proto"
-
 	"github.com/yejiayu/go-cita/common/crypto"
 	"github.com/yejiayu/go-cita/common/hash"
+	"github.com/yejiayu/go-cita/common/merkle"
+	"github.com/yejiayu/go-cita/pb"
+
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
-	"github.com/yejiayu/go-cita/pb"
 )
 
 type Interface interface {
@@ -66,20 +66,14 @@ func (svc *service) NewBlock(ctx context.Context, block *pb.Block) error {
 		return err
 	}
 
-	// TODO: use MPT?
 	var quotaUsed uint64
-	var receiptsData []byte
 	for _, receipt := range res.GetReceipts() {
-		data, err := proto.Marshal(receipt)
-		if err != nil {
-			return err
-		}
-		receiptsData = append(receiptsData, data...)
+		receipt.StateRoot = res.GetStateRoot()
 		quotaUsed += receipt.GetQuotaUsed()
 	}
-	receiptsRoot := hash.BytesToSha3(receiptsData).Bytes()
+	receiptsRoot := merkle.ReceiptsToRoot(res.GetReceipts())
 
-	block.GetHeader().ReceiptsRoot = receiptsRoot
+	block.GetHeader().ReceiptsRoot = receiptsRoot.Bytes()
 	block.GetHeader().StateRoot = res.GetStateRoot()
 	block.GetHeader().QuotaUsed = quotaUsed
 

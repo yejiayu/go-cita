@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/yejiayu/go-cita/common/hash"
+	"github.com/yejiayu/go-cita/common/merkle"
 	cfg "github.com/yejiayu/go-cita/config/consensus"
 	"github.com/yejiayu/go-cita/log"
 	"github.com/yejiayu/go-cita/pb"
@@ -162,17 +163,14 @@ func (t *tendermint) ProposalBlock(height uint64, signer *params.Singer) (*pb.Bl
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	var txRoot []byte
-	for _, txHash := range res.GetTxHashes() {
-		txRoot = append(txRoot, txHash...)
-	}
+	txRoot := merkle.TransactionsToRoot(hash.BytesSToHashes(res.GetTxHashes()))
 	block := &pb.Block{
 		Version: 2,
 		Header: &pb.BlockHeader{
 			Prevhash:         t.lastHeaderHash.Bytes(),
 			Timestamp:        uint64(time.Now().Unix()),
 			Height:           height,
-			TransactionsRoot: hash.BytesToSha3(txRoot).Bytes(),
+			TransactionsRoot: txRoot.Bytes(),
 			QuotaUsed:        res.GetQuotaUsed(),
 			QuotaLimit:       t.quotaLimit,
 			Proposer:         signer.Address().Bytes(),
