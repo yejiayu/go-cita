@@ -29,7 +29,7 @@ func (a *account) Address() common.Address {
 }
 
 func TestABI(t *testing.T) {
-	abi, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[],"name":"add","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"get","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`))
+	abi, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[],"name":"add","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"get","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":false,"name":"from","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"CountEvent","type":"event"}]`))
 	if err != nil {
 		t.Fatal(err)
 	}

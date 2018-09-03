@@ -52,7 +52,6 @@ func (e *executor) Call(ctx context.Context, header *pb.BlockHeader, signedTxs [
 
 	receipts := make([]*pb.Receipt, len(signedTxs))
 	for i, signedTx := range signedTxs {
-		snap := stateDB.Snapshot()
 		tx := signedTx.GetTransactionWithSig().GetTransaction()
 
 		var toAddr *common.Address
@@ -77,8 +76,8 @@ func (e *executor) Call(ctx context.Context, header *pb.BlockHeader, signedTxs [
 		evm := evm.New(vmCtx, stateDB, e.chainConfig, vm.Config{})
 
 		receipt, err := e.applyMessage(stateDB, evm, msg)
-		if err != nil {
-			stateDB.RevertToSnapshot(snap)
+		if err == nil {
+			stateDB.Finalise(true)
 		}
 		receipts[i] = receipt
 	}
@@ -119,8 +118,6 @@ func (e *executor) StaticCall(ctx context.Context, height uint64, from, to, data
 }
 
 func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Message) (*pb.Receipt, error) {
-	defer stateDB.Finalise(true)
-
 	sender := vm.AccountRef(msg.From())
 	receipt := &pb.Receipt{
 		StateRoot:       []byte{},
@@ -134,7 +131,9 @@ func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Messag
 	if msg.To() == nil {
 		var addr common.Address
 		_, addr, quotaUsed, err = evm.Create(sender, msg.Data(), msg.Quota(), msg.Value())
-		receipt.ContractAddress = addr.Bytes()
+		if err == nil {
+			receipt.ContractAddress = addr.Bytes()
+		}
 	} else {
 		_, quotaUsed, err = evm.Call(sender, *msg.To(), msg.Data(), msg.Quota(), msg.Value())
 	}
