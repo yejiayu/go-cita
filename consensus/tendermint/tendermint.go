@@ -184,8 +184,17 @@ func (t *tendermint) ProposalBlock(height uint64, signer *params.Singer) (*pb.Bl
 }
 
 func (t *tendermint) ValidateProposalBlock(proposal *pb.Proposal) error {
-	log.Info("defaultExtension.ValidateProposalBlock")
-	return nil
+	txHashes := proposal.GetBlock().GetBody().GetTxHashes()
+	if len(txHashes) == 0 {
+		return nil
+	}
+	proposer := proposal.GetBlock().GetHeader().GetProposer()
+
+	_, err := t.authClient.EnsureFromPool(context.Background(), &pb.EnsureFromPoolReq{
+		TxHashes:    txHashes,
+		NodeAddress: proposer,
+	})
+	return err
 }
 
 func (t *tendermint) BroadcastProposal(proposal *pb.Proposal, signature []byte) error {
@@ -213,7 +222,7 @@ func (t *tendermint) Commit(block *pb.Block) error {
 		return err
 	}
 
-	_, err = t.authClient.ClearPool(ctx, &pb.ClearPoolReq{
+	_, err = t.authClient.FlushPool(ctx, &pb.FlushPoolReq{
 		Height: block.GetHeader().GetHeight(),
 	})
 	if err != nil {

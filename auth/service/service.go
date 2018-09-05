@@ -45,7 +45,7 @@ var (
 
 type Interface interface {
 	AddUnverifyTx(ctx context.Context, untx *pb.UnverifiedTransaction) (hash.Hash, error)
-	EnsureFromPool(ctx context.Context, nodeID uint32, quotaUsed uint64, hashes []hash.Hash) error
+	EnsureFromPool(ctx context.Context, nodeAddress hash.Address, quotaUsed uint64, hashes []hash.Hash) error
 	GetHashFromPool(ctx context.Context, count uint32, quotaLimit uint64) ([]hash.Hash, error)
 	ClearPool(ctx context.Context, height uint64) error
 
@@ -119,7 +119,7 @@ func (s *service) AddUnverifyTx(ctx context.Context, untx *pb.UnverifiedTransact
 	return txHash, nil
 }
 
-func (s *service) EnsureFromPool(ctx context.Context, nodeID uint32, quotaUsed uint64, hashes []hash.Hash) error {
+func (s *service) EnsureFromPool(ctx context.Context, nodeAddress hash.Address, quotaUsed uint64, hashes []hash.Hash) error {
 	if len(hashes) == 0 {
 		return nil
 	}
@@ -146,7 +146,7 @@ func (s *service) EnsureFromPool(ctx context.Context, nodeID uint32, quotaUsed u
 	}
 
 	res, err := s.networkClient.GetUnverifyTxs(ctx, &pb.GetUnverifyTxsReq{
-		NodeID: nodeID,
+		NodeAddress: nodeAddress.Bytes(),
 		TxHashes: func() [][]byte {
 			var hashes [][]byte
 			for txHash := range nonexistentHashMap {

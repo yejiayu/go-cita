@@ -101,14 +101,16 @@ func (s *server) GetTxFromPool(ctx context.Context, req *pb.GetTxFromPoolReq) (*
 }
 
 func (s *server) EnsureFromPool(ctx context.Context, req *pb.EnsureFromPoolReq) (*pb.Empty, error) {
-	if err := s.svc.EnsureFromPool(ctx, req.GetNodeId(), req.GetQuotaUsed(), hash.BytesSToHashes(req.GetTxHashes())); err != nil {
-		return nil, err
-	}
+	nodeAddress := hash.BytesToAddress(req.GetNodeAddress())
+	quotaUsed := req.GetQuotaUsed()
+	txHashes := hash.BytesSToHashes(req.GetTxHashes())
 
-	return &pb.Empty{}, nil
+	err := s.svc.EnsureFromPool(ctx, nodeAddress, quotaUsed, txHashes)
+
+	return &pb.Empty{}, err
 }
 
-func (s *server) ClearPool(ctx context.Context, req *pb.ClearPoolReq) (*pb.Empty, error) {
+func (s *server) FlushPool(ctx context.Context, req *pb.FlushPoolReq) (*pb.Empty, error) {
 	if err := s.svc.ClearPool(ctx, req.GetHeight()); err != nil {
 		return nil, err
 	}

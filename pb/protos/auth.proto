@@ -48,7 +48,7 @@ message GetTxFromPoolReq {
 }
 
 message EnsureFromPoolReq {
-  uint32 node_id = 1;
+  bytes node_address = 1;
   uint64 quota_used = 2;
   repeated bytes tx_hashes = 3;
 }
@@ -58,7 +58,7 @@ message GetTxFromPoolRes {
   uint64 quota_used = 2;
 }
 
-message ClearPoolReq {
+message FlushPoolReq {
   uint64 height = 1;
 }
 
@@ -76,7 +76,7 @@ service Auth {
   rpc AddUnverifyTx (AddUnverifyTxReq) returns (AddUnverifyTxRes) {}
   rpc GetTxFromPool (GetTxFromPoolReq) returns (GetTxFromPoolRes) {}
   rpc EnsureFromPool (EnsureFromPoolReq) returns (Empty) {}
-  rpc ClearPool (ClearPoolReq) returns (Empty) {}
+  rpc FlushPool (FlushPoolReq) returns (Empty) {}
 
   rpc EnsureHashes (EnsureHashesReq) returns (EnsureHashesRes) {}
 }
