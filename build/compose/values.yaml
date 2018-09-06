@@ -1,0 +1,66 @@
+# Default values for go-cita-compose.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+db:
+  name: cita-db
+  type: redis
+  url: 127.0.0.1
+  port: 6379
+
+api:
+  name: cita-api
+  image:
+    repository: yejiayu/cita-api
+    tag: v0.0.10
+  service:
+    port: 7000
+
+network:
+  name: cita-network
+  image:
+    repository: yejiayu/cita-network
+    tag: v0.0.10
+  service:
+    RPCPort: 7001
+    ExternalPort: 7002
+
+consensus:
+  name: cita-consensus
+  image:
+    repository: yejiayu/cita-consensus
+    tag: v0.0.10
+  service:
+    port: 8001
+  env:
+    - PRIVATE_KEY_HEX: add757cf60afa08fc54376db9cd1f313f2d20d907f3ac984f227ea0835fc0111
+
+auth:
+  name: cita-auth
+  image:
+    repository: yejiayu/cita-auth
+    tag: v0.0.10
+  service:
+    port: 9001
+  env:
+    CHAIN_ID: 1
+    POOL_COUNT: 100000
+    REDIS_URL: 127.0.0.1:6379
+
+chain:
+  name: cita-chain
+  image:
+    repository: yejiayu/cita-chain
+    tag: v0.0.10
+  service:
+    port: 9002
+
+vm:
+  name: cita-vm
+  image:
+    repository: yejiayu/cita-vm
+    tag: v0.0.10
+  service:
+    port: 9003
+  env:
+    GENESIS_PATH: /genesis.json

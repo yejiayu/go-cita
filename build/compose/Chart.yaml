@@ -1,0 +1,11 @@
+apiVersion: v1
+description: go-cita-docker-compose
+name: go-cita-docker-compose
+version: 0.0.1
+home: https://github.com/yejiayu/go-cita
+sources:
+  - https://github.com/yejiayu/go-cita
+keywords:
+  - cita
+  - golang
+  - blockchain

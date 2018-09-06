@@ -1,0 +1,103 @@
+---
+# Source: go-cita-docker-compose/templates/docker-compose.yaml
+version: '3'
+
+services:
+  db:
+    network_mode: host
+    container_name: cita-db
+    image: redis:alpine
+    ports:
+      - 6379:6379
+
+  api:
+    network_mode: host
+    container_name: cita-api
+    image: yejiayu/cita-api:v0.0.10
+    ports:
+      - 7000:7000
+    environment:
+      - NAME=cita-api
+      - PORT=7000
+      - AUTH_URL=127.0.0.1:9001
+      - CHAIN_URL=127.0.0.1:9002
+      - VM_URL=127.0.0.1:9003
+
+  network:
+    network_mode: host
+    container_name: cita-network
+    image: yejiayu/cita-network:v0.0.10
+    ports:
+      - 7001:7001
+      - 7002:7002
+    environment:
+      - NAME=cita-network
+      - RPCPort=7001
+      - EXTERNAL_PORT=7002
+      - AUTH_URL=127.0.0.1:9001
+      - CHAIN_URL=127.0.0.1:9002
+      - CONSENSUS_URL=127.0.0.1:8001
+
+  consensus:
+    network_mode: host
+    container_name: cita-consensus
+    depends_on:
+      - chain
+      - auth
+      - vm
+    image: yejiayu/cita-consensus:v0.0.10
+    ports:
+      - 8001:8001
+    environment:
+      - NAME=cita-network
+      - PORT=8001
+      - AUTH_URL=127.0.0.1:9001
+      - CHAIN_URL=127.0.0.1:9002
+      - NETWORK_URL=127.0.0.1:7001
+
+  auth:
+    network_mode: host
+    container_name: cita-auth
+    depends_on:
+      - db
+    image: yejiayu/cita-auth:v0.0.10
+    ports:
+      - 9001:9001
+    environment:
+      - DB_URL=127.0.0.1:6379
+      - REDIS_URL=127.0.0.1:6379
+      - NAME=cita-auth
+      - PORT=9001
+      - CHAIN_ID=1
+      - POOL_COUNT=100000
+      - NETWORK_URL=127.0.0.1:7001
+
+  chain:
+    network_mode: host
+    container_name: cita-chain
+    depends_on:
+      - db
+      - vm
+    image: yejiayu/cita-chain:v0.0.10
+    ports:
+      - 9002:9002
+    environment:
+      - DB_URL=127.0.0.1:6379
+      - NAME=cita-chain
+      - PORT=9002
+      - VM_URL=127.0.0.1:9003
+
+  vm:
+    network_mode: host
+    container_name: cita-vm
+    depends_on:
+      - db
+    image: yejiayu/cita-vm:v0.0.10
+    ports:
+      - 9003:9003
+    environment:
+      - DB_URL=127.0.0.1:6379
+      - NAME=cita-vm
+      - PORT=9003
+      - GENESIS_PATH=/genesis.json
+

@@ -1,0 +1,100 @@
+version: '3'
+
+services:
+  db:
+    network_mode: host
+    container_name: {{ .Values.db.name }}
+    image: redis:alpine
+    ports:
+      - {{ .Values.db.port }}:6379
+
+  api:
+    network_mode: host
+    container_name: {{ .Values.api.name }}
+    image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}
+    ports:
+      - {{ .Values.api.service.port }}:{{ .Values.api.service.port }}
+    environment:
+      - NAME={{ .Values.api.name }}
+      - PORT={{ .Values.api.service.port }}
+      - AUTH_URL=127.0.0.1:{{ .Values.auth.service.port }}
+      - CHAIN_URL=127.0.0.1:{{ .Values.chain.service.port }}
+      - VM_URL=127.0.0.1:{{ .Values.vm.service.port }}
+
+  network:
+    network_mode: host
+    container_name: {{ .Values.network.name }}
+    image: {{ .Values.network.image.repository }}:{{ .Values.network.image.tag }}
+    ports:
+      - {{ .Values.network.service.RPCPort }}:{{ .Values.network.service.RPCPort }}
+      - {{ .Values.network.service.ExternalPort }}:{{ .Values.network.service.ExternalPort }}
+    environment:
+      - NAME={{ .Values.network.name }}
+      - RPCPort={{ .Values.network.service.RPCPort }}
+      - EXTERNAL_PORT={{ .Values.network.service.ExternalPort }}
+      - AUTH_URL=127.0.0.1:{{ .Values.auth.service.port }}
+      - CHAIN_URL=127.0.0.1:{{ .Values.chain.service.port }}
+      - CONSENSUS_URL=127.0.0.1:{{ .Values.consensus.service.port }}
+
+  consensus:
+    network_mode: host
+    container_name: {{ .Values.consensus.name }}
+    depends_on:
+      - chain
+      - auth
+      - vm
+    image: {{ .Values.consensus.image.repository }}:{{ .Values.consensus.image.tag }}
+    ports:
+      - {{ .Values.consensus.service.port }}:{{ .Values.consensus.service.port }}
+    environment:
+      - NAME={{ .Values.network.name }}
+      - PORT={{ .Values.consensus.service.port }}
+      - AUTH_URL=127.0.0.1:{{ .Values.auth.service.port }}
+      - CHAIN_URL=127.0.0.1:{{ .Values.chain.service.port }}
+      - NETWORK_URL=127.0.0.1:{{ .Values.network.service.RPCPort }}
+
+  auth:
+    network_mode: host
+    container_name: {{ .Values.auth.name }}
+    depends_on:
+      - db
+    image: {{ .Values.auth.image.repository }}:{{ .Values.auth.image.tag }}
+    ports:
+      - {{ .Values.auth.service.port }}:{{ .Values.auth.service.port }}
+    environment:
+      - DB_URL={{ .Values.db.url }}:{{ .Values.db.port }}
+      - REDIS_URL={{ .Values.auth.env.REDIS_URL }}
+      - NAME={{ .Values.auth.name }}
+      - PORT={{ .Values.auth.service.port }}
+      - CHAIN_ID={{ .Values.auth.env.CHAIN_ID }}
+      - POOL_COUNT={{ .Values.auth.env.POOL_COUNT }}
+      - NETWORK_URL=127.0.0.1:{{ .Values.network.service.RPCPort }}
+
+  chain:
+    network_mode: host
+    container_name: {{ .Values.chain.name }}
+    depends_on:
+      - db
+      - vm
+    image: {{ .Values.chain.image.repository }}:{{ .Values.chain.image.tag }}
+    ports:
+      - {{ .Values.chain.service.port }}:{{ .Values.chain.service.port }}
+    environment:
+      - DB_URL={{ .Values.db.url }}:{{ .Values.db.port }}
+      - NAME={{ .Values.chain.name }}
+      - PORT={{ .Values.chain.service.port }}
+      - VM_URL=127.0.0.1:{{ .Values.vm.service.port }}
+
+  vm:
+    network_mode: host
+    container_name: {{ .Values.vm.name }}
+    depends_on:
+      - db
+    image: {{ .Values.vm.image.repository }}:{{ .Values.vm.image.tag }}
+    ports:
+      - {{ .Values.vm.service.port }}:{{ .Values.vm.service.port }}
+    environment:
+      - DB_URL={{ .Values.db.url }}:{{ .Values.db.port }}
+      - NAME={{ .Values.vm.name }}
+      - PORT={{ .Values.vm.service.port }}
+      - GENESIS_PATH={{ .Values.vm.env.GENESIS_PATH }}
