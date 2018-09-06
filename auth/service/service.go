@@ -179,12 +179,13 @@ func (s *service) EnsureFromPool(ctx context.Context, nodeAddress hash.Address, 
 }
 
 func (s *service) GetHashFromPool(ctx context.Context, count uint32, quotaLimit uint64) ([]hash.Hash, error) {
-	signedTxs, err := s.pool.Pull(ctx, count)
+	header, err := s.blockDB.GetHeaderByLatest(ctx)
 	if err != nil {
 		return nil, err
 	}
+	currentHeight := header.GetHeight()
 
-	header, err := s.blockDB.GetHeaderByLatest(ctx)
+	signedTxs, err := s.pool.Pull(ctx, count)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +198,7 @@ func (s *service) GetHashFromPool(ctx context.Context, count uint32, quotaLimit 
 		txHash := hash.BytesToHash(signedTx.GetTxHash())
 
 		// check valid_until_block
-		if tx.GetValidUntilBlock() < header.GetHeight() {
+		if tx.GetValidUntilBlock() < currentHeight {
 			invalidHashes = append(invalidHashes, txHash)
 			continue
 		}

@@ -26,14 +26,14 @@
 #
 
 # Current version of the project.
-VERSION ?= v0.2.6
+VERSION ?= v0.0.10
 
 # This repo's root import path (under GOPATH).
 ROOT := github.com/yejiayu/go-cita
 
 # Target binaries. You can build multiple binaries for a single project.
 # TARGETS ?= auth consensus chain vm
-TARGETS ?= api auth chain consensus
+TARGETS ?= api auth chain consensus network vm
 
 # Container image prefix and suffix added to targets.
 # The final built images are:
