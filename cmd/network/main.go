@@ -19,6 +19,7 @@ import (
 	"github.com/yejiayu/go-cita/clients"
 	"github.com/yejiayu/go-cita/common/tracing"
 	"github.com/yejiayu/go-cita/log"
+	"github.com/yejiayu/go-cita/pb"
 
 	cfg "github.com/yejiayu/go-cita/config/network"
 	"github.com/yejiayu/go-cita/network"
@@ -36,5 +37,13 @@ func main() {
 	authClient := clients.NewAuthClient(cfg.GetAuthURL())
 	chainClient := clients.NewChainClient(cfg.GetChainURL())
 
-	network.New(consensusClient, authClient, chainClient).Run()
+	nodeAddresses := cfg.GetNodeAddresses()
+	nodeURLs := cfg.GetNodeURLs()
+	networkClientMap := make(map[string]pb.NetworkClient)
+	for i, url := range nodeURLs {
+		client := clients.NewNetworkClient(url)
+		networkClientMap[nodeAddresses[i]] = client
+	}
+
+	network.NewServer(cfg.GetAddress(), networkClientMap, consensusClient, authClient, chainClient).Run()
 }
