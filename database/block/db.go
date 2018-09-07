@@ -39,7 +39,6 @@ type Interface interface {
 	GetHeaderByHeight(ctx context.Context, height uint64) (*pb.BlockHeader, error)
 	GetBodyByHeight(ctx context.Context, height uint64) (*pb.BlockBody, error)
 	GetHeaderByLatest(ctx context.Context) (*pb.BlockHeader, error)
-
 	AddBlock(ctx context.Context, b *pb.Block, receipts []*pb.Receipt) error
 
 	GetReceipt(ctx context.Context, txHash hash.Hash) (*pb.Receipt, error)
@@ -78,6 +77,14 @@ func (db *blockDB) GetHeaderByHeight(ctx context.Context, height uint64) (*pb.Bl
 }
 
 func (db *blockDB) GetBodyByHeight(ctx context.Context, height uint64) (*pb.BlockBody, error) {
+	if height == math.MaxUint64 {
+		var err error
+		height, err = db.getLatest(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	data, err := db.raw.Get(ctx, nsBlockBody, uint64ToBytes(height))
 	if err != nil {
 		return nil, err
