@@ -21,6 +21,7 @@ message StaticCallReq {
 
 message StaticCallRes {
   bytes result = 1;
+  string error = 2;
 }
 
 service VM {

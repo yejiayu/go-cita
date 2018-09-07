@@ -46,6 +46,7 @@ message Receipt {
   string error = 6;
   bytes transaction_hash = 7;
   bytes contract_address = 8;
+  uint64 block_height = 9;
 }
 
 message LogEntry {
@@ -78,6 +79,14 @@ message GetBlockHeaderRes {
   BlockHeader header = 1;
 }
 
+message GetBlockBodyReq {
+  uint64 height = 1;
+}
+
+message GetBlockBodyRes {
+  BlockBody body = 1;
+}
+
 message GetReceiptReq {
   bytes tx_hash = 1;
 }
@@ -91,5 +100,6 @@ service Chain {
   rpc GetValidators(GetValidatorsReq) returns (GetValidatorsRes) {}
 
   rpc GetBlockHeader(GetBlockHeaderReq) returns (GetBlockHeaderRes) {}
+  rpc GetBlockBody(GetBlockBodyReq) returns (GetBlockBodyRes) {}
   rpc GetReceipt(GetReceiptReq) returns (GetReceiptRes) {}
 }
