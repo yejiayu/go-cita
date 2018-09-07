@@ -32,7 +32,7 @@ var (
 )
 
 type Interface interface {
-	Add(ctx context.Context, signedTx *pb.SignedTransaction) error
+	Add(ctx context.Context, signedTxs []*pb.SignedTransaction) error
 
 	GetByHash(ctx context.Context, hash hash.Hash) (*pb.SignedTransaction, error)
 	Get(ctx context.Context, hashes [][]byte) ([]*pb.SignedTransaction, error)
@@ -47,13 +47,18 @@ type txDB struct {
 	raw raw.Interface
 }
 
-func (db *txDB) Add(ctx context.Context, signedTx *pb.SignedTransaction) error {
-	data, err := proto.Marshal(signedTx)
-	if err != nil {
-		return err
+func (db *txDB) Add(ctx context.Context, signedTxs []*pb.SignedTransaction) error {
+	keys := make([][]byte, len(signedTxs))
+	values := make([][]byte, len(signedTxs))
+
+	for i, signedTx := range signedTxs {
+		data, _ := proto.Marshal(signedTx)
+
+		keys[i] = signedTx.GetTxHash()
+		values[i] = data
 	}
 
-	return db.raw.Put(ctx, nsSignedTx, signedTx.GetTxHash(), data)
+	return db.raw.BatchPut(ctx, nsSignedTx, keys, values)
 }
 
 func (db *txDB) GetByHash(ctx context.Context, hash hash.Hash) (*pb.SignedTransaction, error) {
