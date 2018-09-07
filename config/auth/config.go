@@ -16,8 +16,9 @@ type config struct {
 	Name      string `env:"NAME" envDefault:"auth"`
 	Port      string `env:"PORT" envDefault:"9001"`
 	PoolCount int    `env:"POOL_COUNT" envDefault:"50000"`
+	ChainID   int    `env:"CHAIN_ID" envDefault:"1"`
 
-	NetworkURL string `env:"NETWORK_URL" envDefault:"127.0.0.1:7001"`
+	NetworkURL string `env:"NETWORK_URL" envDefault:"127.0.0.1:7002"`
 
 	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
 }
@@ -57,6 +58,10 @@ func GetNetworkURL() string {
 
 func GetPoolCount() uint32 {
 	return uint32(cfg.PoolCount)
+}
+
+func GetChainID() uint32 {
+	return uint32(cfg.ChainID)
 }
 
 func GetTracingURL() string {

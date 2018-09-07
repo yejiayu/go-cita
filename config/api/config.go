@@ -10,7 +10,7 @@ var cfg *config
 
 type config struct {
 	Name string `env:"NAME" envDefault:"api-graphql"`
-	Port string `env:"PORT" envDefault:"8000"`
+	Port string `env:"PORT" envDefault:"7000"`
 
 	AuthURL  string `env:"AUTH_URL" envDefault:"127.0.0.1:9001"`
 	ChainURL string `env:"CHAIN_URL" envDefault:"127.0.0.1:9002"`

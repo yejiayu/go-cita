@@ -12,7 +12,7 @@ import (
 var cfg *config
 
 type config struct {
-	PrivKeyHex string `env:"PRIVATE_KEY_HEX" envDefault:"add757cf60afa08fc54376db9cd1f313f2d20d907f3ac984f227ea0835fc0111"`
+	PrivKeyHex string `env:"PRIVATE_KEY_HEX" envDefault:"0x3a91bade4b0b370f3958196ee7bdbdc86207f8470872a8159e30004a282c41c8"`
 	QuotaLimit int    `env:"QUOTA_LIMIT" envDefault:"99999999"`
 	TxCount    int    `env:"TX_COUNT" envDefault:"20000"`
 
@@ -21,7 +21,7 @@ type config struct {
 
 	AuthURL    string `env:"AUTH_URL" envDefault:"127.0.0.1:9001"`
 	ChainURL   string `env:"CHAIN_URL" envDefault:"127.0.0.1:9002"`
-	NetworkURL string `env:"NETWORK_URL" envDefault:"127.0.0.1:7001"`
+	NetworkURL string `env:"NETWORK_URL" envDefault:"127.0.0.1:7002"`
 
 	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
 }

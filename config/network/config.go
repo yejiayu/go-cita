@@ -9,12 +9,12 @@ import (
 var cfg *config
 
 type config struct {
-	Name         string `env:"NAME" envDefault:"network"`
-	RPCPort      string `env:"RPC_PORT" envDefault:"7001"`
-	ExternalPort string `env:"EXTERNAL_PORT" envDefault:"7000"`
-	ID           uint32 `env:"ID"`
+	Name string `env:"NAME" envDefault:"network"`
+	Port string `env:"PORT" envDefault:"7002"`
 
-	Peers []string `env:"PEERS" envSeparator:"," envDefault:"1-127.0.0.1:7101"`
+	Address       string   `env:"ADDRESS" envDefault:"0xd92f2df9ab6bae68541e83cd38f22808f202363a"`
+	NodeAddresses []string `env:"NODE_ADDRESSES" envSeparator:","`
+	NodeURLs      []string `env:"NODE_URLS" envSeparator:","`
 
 	ConsensusURL string `env:"CONSENSUS_URL" envDefault:"127.0.0.1:8001"`
 	AuthURL      string `env:"AUTH_URL" envDefault:"127.0.0.1:9001"`
@@ -36,20 +36,20 @@ func GetName() string {
 	return cfg.Name
 }
 
-func GetRPCPort() string {
-	return cfg.RPCPort
+func GetPort() string {
+	return cfg.Port
 }
 
-func GetExternalPort() string {
-	return cfg.ExternalPort
+func GetAddress() string {
+	return cfg.Address
 }
 
-func GetID() uint32 {
-	return cfg.ID
+func GetNodeAddresses() []string {
+	return cfg.NodeAddresses
 }
 
-func GetPeers() []string {
-	return cfg.Peers
+func GetNodeURLs() []string {
+	return cfg.NodeURLs
 }
 
 func GetConsensusURL() string {
