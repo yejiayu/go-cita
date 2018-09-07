@@ -45,7 +45,11 @@ func (vs *VoteSet) AddVote(vote *pb.Vote, signature []byte) bool {
 		return false
 	}
 
-	if !vs.valSet.GetByAddress(address).VerifySignature(voteHash, signature) {
+	if validator := vs.valSet.GetByAddress(address); validator != nil {
+		if !validator.VerifySignature(voteHash, signature) {
+			return false
+		}
+	} else {
 		return false
 	}
 
@@ -83,7 +87,9 @@ func (vs *VoteSet) TwoThirdsMajority() (hash.Hash, bool) {
 	defer vs.mu.RUnlock()
 
 	valLen := len(vs.valSet.Validators)
+	log.Infof("validators length %d", len(vs.valSet.Validators))
 	for blockHash, votes := range vs.votesByBlock {
+		log.Infof("blockHash %s, votes %d", blockHash.String(), len(votes))
 		if len(votes) > (valLen * 2 / 3) {
 			return blockHash, true
 		}

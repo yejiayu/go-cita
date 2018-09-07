@@ -50,5 +50,8 @@ func (v *Validator) Copy() *Validator {
 }
 
 func (v *Validator) VerifySignature(hash hash.Hash, signature []byte) bool {
+	if len(signature) == 0 {
+		return false
+	}
 	return crypto.VerifySignature(v.PubKey, hash, signature[:len(signature)-1])
 }

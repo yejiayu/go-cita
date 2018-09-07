@@ -184,15 +184,20 @@ func (t *tendermint) ProposalBlock(height uint64, signer *params.Singer) (*pb.Bl
 }
 
 func (t *tendermint) ValidateProposalBlock(proposal *pb.Proposal) error {
+	proposer := hash.BytesToAddress(proposal.GetBlock().GetHeader().GetProposer())
+	// don't verify self
+	if t.singer.Address() == proposer {
+		return nil
+	}
+
 	txHashes := proposal.GetBlock().GetBody().GetTxHashes()
 	if len(txHashes) == 0 {
 		return nil
 	}
-	proposer := proposal.GetBlock().GetHeader().GetProposer()
 
 	_, err := t.authClient.EnsureFromPool(context.Background(), &pb.EnsureFromPoolReq{
 		TxHashes:    txHashes,
-		NodeAddress: proposer,
+		NodeAddress: proposer.Bytes(),
 	})
 	return err
 }
@@ -215,15 +220,15 @@ func (t *tendermint) BroadcastVote(vote *pb.Vote, signature []byte) error {
 
 func (t *tendermint) Commit(block *pb.Block) error {
 	ctx := context.Background()
-	_, err := t.chainClient.NewBlock(ctx, &pb.NewBlockReq{
-		Block: block,
+	_, err := t.authClient.FlushPool(ctx, &pb.FlushPoolReq{
+		TxHashes: block.GetBody().GetTxHashes(),
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = t.authClient.FlushPool(ctx, &pb.FlushPoolReq{
-		Height: block.GetHeader().GetHeight(),
+	_, err = t.chainClient.NewBlock(ctx, &pb.NewBlockReq{
+		Block: block,
 	})
 	if err != nil {
 		return err
