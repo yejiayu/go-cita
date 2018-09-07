@@ -20,6 +20,10 @@ func ToHex(data []byte) string {
 	return common.ToHex(data)
 }
 
+func FromHex(data string) []byte {
+	return common.FromHex(data)
+}
+
 func HashesToBytesS(hashes []Hash) [][]byte {
 	bytesS := make([][]byte, len(hashes))
 	for i, h := range hashes {
