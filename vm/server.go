@@ -71,10 +71,13 @@ func (s *server) Call(ctx context.Context, req *pb.CallReq) (*pb.CallRes, error)
 }
 
 func (s *server) StaticCall(ctx context.Context, req *pb.StaticCallReq) (*pb.StaticCallRes, error) {
-	ret, err := s.executor.StaticCall(ctx, req.GetHeight(), req.GetFrom(), req.GetTo(), req.GetData())
-	if err != nil {
+	ret, ok, err := s.executor.StaticCall(ctx, req.GetHeight(), req.GetFrom(), req.GetTo(), req.GetData())
+	if !ok && err != nil {
 		return nil, err
 	}
 
+	if err != nil {
+		return &pb.StaticCallRes{Error: err.Error()}, nil
+	}
 	return &pb.StaticCallRes{Result: ret}, nil
 }

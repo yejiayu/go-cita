@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/yejiayu/go-cita/common/hash"
+	cfg "github.com/yejiayu/go-cita/config/vm"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
 	"github.com/yejiayu/go-cita/database/ethdb"
@@ -23,15 +24,28 @@ import (
 
 type Executor interface {
 	Call(ctx context.Context, header *pb.BlockHeader, signedTxs []*pb.SignedTransaction) ([]*pb.Receipt, []byte, error)
-	StaticCall(ctx context.Context, height uint64, from, to, data []byte) ([]byte, error)
+	StaticCall(ctx context.Context, height uint64, from, to, data []byte) ([]byte, bool, error)
 }
 
 func NewExecutor(factory database.Factory) Executor {
+	chainID := big.NewInt(int64(cfg.GetChainID()))
+
 	return &executor{
 		ethDB:   factory.EthDB(),
 		blockDB: factory.BlockDB(),
 
-		chainConfig: params.MainnetChainConfig,
+		chainConfig: &params.ChainConfig{
+			ChainID:             chainID,
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP150Hash:          common.Hash{},
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+		},
 	}
 }
 
@@ -88,19 +102,19 @@ func (e *executor) Call(ctx context.Context, header *pb.BlockHeader, signedTxs [
 	return receipts, root.Bytes(), nil
 }
 
-func (e *executor) StaticCall(ctx context.Context, height uint64, from, to, data []byte) ([]byte, error) {
+func (e *executor) StaticCall(ctx context.Context, height uint64, from, to, data []byte) ([]byte, bool, error) {
 	header, err := e.blockDB.GetHeaderByHeight(ctx, height)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if header == nil {
-		return nil, fmt.Errorf("not found header at height %d", height)
+		return nil, false, fmt.Errorf("not found header at height %d", height)
 	}
 
 	root := common.BytesToHash(header.GetStateRoot())
 	stateDB, err := state.New(root, state.NewDatabase(e.ethDB))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	fromAddr := common.BytesToAddress(from)
@@ -114,7 +128,7 @@ func (e *executor) StaticCall(ctx context.Context, height uint64, from, to, data
 
 	evm := evm.New(vmCtx, stateDB, e.chainConfig, vm.Config{})
 	ret, _, err := evm.Call(vm.AccountRef(msg.From()), *msg.To(), msg.Data(), msg.Quota(), msg.Value())
-	return ret, err
+	return ret, true, err
 }
 
 func (e *executor) applyMessage(stateDB *state.StateDB, evm evm.EVM, msg *Message) (*pb.Receipt, error) {
