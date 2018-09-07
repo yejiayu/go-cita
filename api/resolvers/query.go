@@ -97,6 +97,31 @@ func (q *Query) GetBlockHeader(p graphql.ResolveParams) (interface{}, error) {
 	return header, nil
 }
 
+func (q *Query) GetBlockBody(p graphql.ResolveParams) (interface{}, error) {
+	var height uint64
+	data, ok := p.Args["height"]
+	if !ok {
+		height = math.MaxUint64
+	} else {
+		height = data.(uint64)
+	}
+
+	res, err := q.clients.chain.GetBlockBody(p.Context, &pb.GetBlockBodyReq{
+		Height: height,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	txHashes := make([]string, len(res.GetBody().GetTxHashes()))
+	for i, h := range res.GetBody().GetTxHashes() {
+		txHashes[i] = common.ToHex(h)
+	}
+	return &types.BlockBody{
+		TxHashes: txHashes,
+	}, nil
+}
+
 func (q *Query) GetReceipt(p graphql.ResolveParams) (interface{}, error) {
 	txHashHex := p.Args["txHash"].(string)
 	txHash := common.FromHex(txHashHex)
@@ -108,6 +133,7 @@ func (q *Query) GetReceipt(p graphql.ResolveParams) (interface{}, error) {
 
 	pbReceipt := res.GetReceipt()
 	receipt := &types.Receipt{
+		BlockHeight:     pbReceipt.GetBlockHeight(),
 		QuotaUsed:       pbReceipt.GetQuotaUsed(),
 		Quota:           pbReceipt.GetQuota(),
 		LogBloom:        common.ToHex(pbReceipt.GetLogBloom()),

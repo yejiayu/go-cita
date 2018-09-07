@@ -31,6 +31,10 @@ type BlockHeader struct {
 	Proposer        string `json:"proposer" mapstructure:"proposer"`
 }
 
+type BlockBody struct {
+	TxHashes []string `json:"tx_hashes"`
+}
+
 var BlockHeaderObject = graphql.NewObject(graphql.ObjectConfig{
 	Name: "BlockHeader",
 	Fields: graphql.Fields{
@@ -43,5 +47,12 @@ var BlockHeaderObject = graphql.NewObject(graphql.ObjectConfig{
 		"QuotaUsed":       {Type: Uint64},
 		"QuotaLimit":      {Type: Uint64},
 		"Proposer":        {Type: graphql.String},
+	},
+})
+
+var BlockBodyObject = graphql.NewObject(graphql.ObjectConfig{
+	Name: "BlockBody",
+	Fields: graphql.Fields{
+		"TxHashes": {Type: graphql.NewList(graphql.String)},
 	},
 })

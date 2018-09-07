@@ -55,6 +55,13 @@ func NewQuery(r *resolvers.Resolver) *graphql.Object {
 				},
 				Resolve: r.Query.GetBlockHeader,
 			},
+			"GetBlockBody": &graphql.Field{
+				Type: types.BlockBodyObject,
+				Args: graphql.FieldConfigArgument{
+					"height": &graphql.ArgumentConfig{Type: types.Uint64},
+				},
+				Resolve: r.Query.GetBlockHeader,
+			},
 			"GetReceipt": &graphql.Field{
 				Type: types.ReceiptObject,
 				Args: graphql.FieldConfigArgument{

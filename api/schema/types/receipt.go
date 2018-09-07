@@ -20,6 +20,7 @@ import (
 )
 
 type Receipt struct {
+	BlockHeight     uint64      `json:"block_height" mapstructure:"quota_used"`
 	QuotaUsed       uint64      `json:"quota_used" mapstructure:"quota_used"`
 	Quota           uint64      `json:"quota" mapstructure:"quota"`
 	LogBloom        string      `json:"log_bloom" mapstructure:"log_bloom"`
@@ -39,6 +40,7 @@ type LogEntry struct {
 var ReceiptObject = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Receipt",
 	Fields: graphql.Fields{
+		"block_height":     {Type: Uint64},
 		"quota_used":       {Type: Uint64},
 		"quota":            {Type: Uint64},
 		"log_bloom":        {Type: Hex},
