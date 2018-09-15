@@ -41,7 +41,13 @@ func main() {
 	nodeURLs := cfg.GetNodeURLs()
 	networkClientMap := make(map[string]pb.NetworkClient)
 	for i, url := range nodeURLs {
+		// if self
+		if nodeAddresses[i] == cfg.GetAddress() {
+			continue
+		}
+
 		client := clients.NewNetworkClient(url)
+		log.Infof("connect %s", url)
 		networkClientMap[nodeAddresses[i]] = client
 	}
 
