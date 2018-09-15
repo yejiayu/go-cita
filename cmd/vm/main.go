@@ -17,8 +17,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"os"
 
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/log"
@@ -28,18 +26,11 @@ import (
 )
 
 func main() {
-	file, err := os.Open(cfg.GetGenesisPath())
-	if err != nil {
-		log.Panic(err)
-	}
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Panic(err)
-	}
-
 	var genesis vm.Genesis
-	if err = json.Unmarshal(data, &genesis); err != nil {
-		log.Panic(err)
+	if genesisStr := cfg.GetGenesis(); genesisStr != "" {
+		if err := json.Unmarshal([]byte(genesisStr), &genesis); err != nil {
+			log.Panic(err)
+		}
 	}
 
 	factory, err := database.NewFactory(cfg.GetDBType(), cfg.GetDBUrl())

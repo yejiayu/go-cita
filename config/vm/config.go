@@ -12,10 +12,10 @@ type config struct {
 	DbType string   `env:"DB_TYPE" envDefault:"redis"`
 	DbURL  []string `env:"DB_URL" envSeparator:"," envDefault:"127.0.0.1:6379"`
 
-	ChainID     int    `env:"CHAIN_ID" envDefault:"1"`
-	Name        string `env:"NAME" envDefault:"vm"`
-	Port        string `env:"Port" envDefault:"9003"`
-	GenesisPath string `env:"GENESIS_PATH" envDefault:"genesis.json"`
+	ChainID int    `env:"CHAIN_ID" envDefault:"1"`
+	Name    string `env:"NAME" envDefault:"vm"`
+	Port    string `env:"Port" envDefault:"9003"`
+	Genesis string `env:"GENESIS"`
 
 	TracingURL string `env:"TRACING_URL" envDefault:"zipkin.istio-system:9411"`
 }
@@ -49,8 +49,8 @@ func GetPort() string {
 	return cfg.Port
 }
 
-func GetGenesisPath() string {
-	return cfg.GenesisPath
+func GetGenesis() string {
+	return cfg.Genesis
 }
 
 func GetTracingURL() string {

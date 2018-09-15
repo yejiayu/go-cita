@@ -54,6 +54,12 @@ func SetupGenesis(factory database.Factory, genesis *Genesis, execContract bool)
 		return err
 	}
 
+	if genesis == nil {
+		genesis = &Genesis{
+			Timestamp: uint64(time.Now().Unix()),
+			Prevhash:  common.Hash{}.String(),
+		}
+	}
 	for addrStr, account := range genesis.Alloc {
 		addr := common.HexToAddress(addrStr)
 		if execContract {
@@ -69,6 +75,7 @@ func SetupGenesis(factory database.Factory, genesis *Genesis, execContract bool)
 			stateDB.SetState(addr, common.HexToHash(key), common.HexToHash(value))
 		}
 	}
+
 	root := stateDB.IntermediateRoot(false)
 	block := &pb.Block{
 		Header: &pb.BlockHeader{
