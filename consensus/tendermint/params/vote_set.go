@@ -3,6 +3,7 @@ package params
 import (
 	"bytes"
 	"sync"
+	"time"
 
 	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/log"
@@ -16,6 +17,7 @@ type VoteSet struct {
 
 	votesByBlock map[hash.Hash][]*pb.Vote
 	valSet       *ValidatorSet
+	voteTimeSet  map[hash.Hash]time.Time
 }
 
 func NewVoteSet(height, round uint64, valSet *ValidatorSet) *VoteSet {
@@ -25,6 +27,7 @@ func NewVoteSet(height, round uint64, valSet *ValidatorSet) *VoteSet {
 
 		votesByBlock: make(map[hash.Hash][]*pb.Vote),
 		valSet:       valSet,
+		voteTimeSet:  make(map[hash.Hash]time.Time),
 	}
 }
 
@@ -53,15 +56,23 @@ func (vs *VoteSet) AddVote(vote *pb.Vote, signature []byte) bool {
 		return false
 	}
 
-	for _, votes := range vs.votesByBlock {
-		for _, v := range votes {
-			if bytes.Equal(v.GetAddress(), address.Bytes()) {
-				return false
+	for _, v := range vs.votesByBlock[blockHash] {
+		if bytes.Equal(v.GetAddress(), address.Bytes()) {
+			if lastT, ok := vs.voteTimeSet[voteHash]; ok {
+				if time.Now().Sub(lastT) < time.Second*3 {
+					return false
+				}
+
+				vs.voteTimeSet[voteHash] = time.Now()
+				return true
 			}
+			return false
 		}
 	}
 
 	vs.votesByBlock[blockHash] = append(vs.votesByBlock[blockHash], vote)
+	vs.voteTimeSet[voteHash] = time.Now()
+	log.Infof("vote set, round %d, %+v", vote.GetRound(), vs.votesByBlock[blockHash])
 	return true
 }
 
@@ -71,7 +82,9 @@ func (vs *VoteSet) HasTwoThirdsAny() bool {
 
 	valLen := len(vs.valSet.Validators)
 	totalVotes := 0
-	for _, votes := range vs.votesByBlock {
+	log.Infof("validators length %d", len(vs.valSet.Validators))
+	for blockHash, votes := range vs.votesByBlock {
+		log.Infof("HasTwoThirdsAny blockHash %s, votes %d", blockHash.String(), len(votes))
 		totalVotes = totalVotes + len(votes)
 		if totalVotes > (valLen * 2 / 3) {
 			return true
@@ -89,7 +102,7 @@ func (vs *VoteSet) TwoThirdsMajority() (hash.Hash, bool) {
 	valLen := len(vs.valSet.Validators)
 	log.Infof("validators length %d", len(vs.valSet.Validators))
 	for blockHash, votes := range vs.votesByBlock {
-		log.Infof("blockHash %s, votes %d", blockHash.String(), len(votes))
+		log.Infof("TwoThirdsMajority blockHash %s, votes %d", blockHash.String(), len(votes))
 		if len(votes) > (valLen * 2 / 3) {
 			return blockHash, true
 		}

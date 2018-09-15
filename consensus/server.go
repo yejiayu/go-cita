@@ -76,6 +76,7 @@ func (s *server) SetProposal(ctx context.Context, in *pb.SetProposalReq) (*pb.Em
 }
 
 func (s *server) AddVote(ctx context.Context, in *pb.AddVoteReq) (*pb.Empty, error) {
+	log.Info("add vote for remote")
 	if err := s.tendermint.SetVote(ctx, in.GetVote(), in.GetSignature()); err != nil {
 		return nil, err
 	}

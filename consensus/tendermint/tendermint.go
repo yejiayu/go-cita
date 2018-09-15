@@ -250,7 +250,12 @@ func (t *tendermint) Commit(block *pb.Block) error {
 		return err
 	}
 	t.lastHeaderHash = lastHeaderHash
-	return err
+
+	go t.networkClient.BroadcastHeight(context.Background(), &pb.BroadcastHeightReq{
+		Height: t.lastHeader.GetHeight(),
+	})
+
+	return nil
 }
 
 func (e *tendermint) WAL(data []byte) error {
@@ -265,5 +270,6 @@ func (e *tendermint) GetValidatorSet(height uint64) (*params.ValidatorSet, error
 		return nil, err
 	}
 
+	// log.Infof("blockHash %s, votes %d", blockHash.String(), len(votes))
 	return params.NewValidatorSet(res.GetVals())
 }

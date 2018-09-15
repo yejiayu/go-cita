@@ -88,6 +88,10 @@ func (mock *mockExtension) BroadcastVote(vote *pb.Vote, signature []byte) error 
 	return nil
 }
 
+func (mock *mockExtension) SetVoteByNode(targetNode []byte, vote *pb.Vote, signature []byte) error {
+	return nil
+}
+
 func (mock *mockExtension) Commit(block *pb.Block) error {
 	log.Infof("commit block, height %d", block.GetHeader().GetHeight())
 	return nil

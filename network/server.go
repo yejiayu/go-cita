@@ -127,6 +127,10 @@ func (s *server) BroadcastTransaction(ctx context.Context, req *pb.BroadcastTran
 	return &pb.Empty{}, nil
 }
 
+func (s *server) BroadcastHeight(ctx context.Context, req *pb.BroadcastHeightReq) (*pb.Empty, error) {
+	return &pb.Empty{}, nil
+}
+
 func (s *server) SetProposal(ctx context.Context, req *pb.SetProposalReq) (*pb.Empty, error) {
 	return s.consensusClient.SetProposal(ctx, req)
 }

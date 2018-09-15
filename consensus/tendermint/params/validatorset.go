@@ -43,7 +43,7 @@ type ValidatorSet struct {
 func NewValidatorSet(pubkList [][]byte) (*ValidatorSet, error) {
 	vals := make([]*Validator, len(pubkList))
 	for i, pubk := range pubkList {
-		pubkey, err := crypto.DecompressPubkey(pubk)
+		pubkey, err := crypto.UnmarshalPubkey(pubk)
 		if err != nil {
 			return nil, err
 		}

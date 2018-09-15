@@ -28,11 +28,17 @@ message ReceiverRes {
   bytes data = 2;
 }
 
+message BroadcastHeightReq {
+  uint64 height = 1;
+}
+
 service Network {
   rpc BroadcastProposal(BroadcastProposalReq) returns (Empty) {}
   rpc BroadcastVote(BroadcastVotelReq) returns (Empty) {}
   rpc BroadcastTransaction(BroadcastTransactionReq) returns (Empty) {}
+  rpc BroadcastHeight(BroadcastHeightReq) returns (Empty) {}
 
+  rpc SetHeight()
   rpc SetProposal(SetProposalReq) returns (Empty) {}
   rpc AddVote(AddVoteReq) returns (Empty) {}
   rpc AddUnverifyTx (AddUnverifyTxReq) returns (AddUnverifyTxRes) {}
