@@ -86,6 +86,15 @@ func (s *server) GetBlockHeader(ctx context.Context, req *pb.GetBlockHeaderReq) 
 	return &pb.GetBlockHeaderRes{Header: header}, nil
 }
 
+func (s *server) GetBlockBody(ctx context.Context, req *pb.GetBlockBodyReq) (*pb.GetBlockBodyRes, error) {
+	body, err := s.svc.GetBlockBody(ctx, req.GetHeight())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetBlockBodyRes{Body: body}, nil
+}
+
 func (s *server) GetReceipt(ctx context.Context, req *pb.GetReceiptReq) (*pb.GetReceiptRes, error) {
 	receipt, err := s.svc.GetReceipt(ctx, hash.BytesToHash(req.GetTxHash()))
 	if err != nil {

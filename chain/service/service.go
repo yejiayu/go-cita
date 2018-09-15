@@ -4,17 +4,18 @@ import (
 	"context"
 	"math"
 
-	"github.com/yejiayu/go-cita/common/crypto"
 	"github.com/yejiayu/go-cita/common/hash"
 	"github.com/yejiayu/go-cita/common/merkle"
 	"github.com/yejiayu/go-cita/pb"
 
+	cfg "github.com/yejiayu/go-cita/config/chain"
 	"github.com/yejiayu/go-cita/database"
 	"github.com/yejiayu/go-cita/database/block"
 )
 
 type Interface interface {
 	GetBlockHeader(ctx context.Context, height uint64) (*pb.BlockHeader, error)
+	GetBlockBody(ctx context.Context, height uint64) (*pb.BlockBody, error)
 	GetValidators(ctx context.Context, height uint64) ([][]byte, error)
 
 	NewBlock(ctx context.Context, block *pb.Block) error
@@ -43,13 +44,17 @@ func (svc *service) GetBlockHeader(ctx context.Context, height uint64) (*pb.Bloc
 	return svc.blockDB.GetHeaderByHeight(ctx, height)
 }
 
+func (svc *service) GetBlockBody(ctx context.Context, height uint64) (*pb.BlockBody, error) {
+	return svc.blockDB.GetBodyByHeight(ctx, height)
+}
+
 func (svc *service) GetValidators(ctx context.Context, height uint64) ([][]byte, error) {
-	priv1, err := crypto.HexToECDSA("add757cf60afa08fc54376db9cd1f313f2d20d907f3ac984f227ea0835fc0111")
-	if err != nil {
-		return nil, err
+	validators := make([][]byte, len(cfg.GetValidators()))
+	for i, v := range cfg.GetValidators() {
+		validators[i] = hash.FromHex(v)
 	}
 
-	return [][]byte{crypto.CompressPubkey(&priv1.PublicKey)}, nil
+	return validators, nil
 }
 
 func (svc *service) NewBlock(ctx context.Context, block *pb.Block) error {
@@ -70,6 +75,7 @@ func (svc *service) NewBlock(ctx context.Context, block *pb.Block) error {
 	for _, receipt := range res.GetReceipts() {
 		receipt.StateRoot = res.GetStateRoot()
 		quotaUsed += receipt.GetQuotaUsed()
+		receipt.BlockHeight = block.GetHeader().GetHeight()
 	}
 	receiptsRoot := merkle.ReceiptsToRoot(res.GetReceipts())
 
