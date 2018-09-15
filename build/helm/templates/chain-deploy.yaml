@@ -2,12 +2,12 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: {{ .Values.chain.name }}
-  namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.chain.name }}
-    chart: {{ template "helm.chart" . }}
+  annotations:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
 spec:
-  replicas: {{ .Values.chain.replicaCount }}
+  replicas: {{ .Values.chain.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.chain.name }}
@@ -19,13 +19,18 @@ spec:
       containers:
         - name: {{ .Values.chain.name }}
           env:
+            - name: PORT
+              value: "{{ .Values.chain.service.port }}"
+            - name: DB_TYPE
+              value: "{{ .Values.common.DB_TYPE }}"
             - name: DB_URL
-              value: {{ .Values.tikv }}
-            - name: EvmURL
-              value: evm:8101
+              value: "{{ .Release.Namespace }}-{{ .Values.common.DB_URL }}"
+            - name: VM_URL
+              value: "{{ .Values.vm.name }}:{{ .Values.vm.service.port }}"
+            - name: VALIDATORS
+              value: "{{ .Values.validators }}"
           image: "{{ .Values.chain.image.repository }}:{{ .Values.chain.image.tag }}"
-          imagePullPolicy: {{ .Values.chain.image.pullPolicy }}
           ports:
-            - name: grpc
+            - name: {{ .Values.chain.service.name }}
               containerPort: {{ .Values.chain.service.port }}
               protocol: TCP

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.consensus.name }}
+  labels:
+    app: {{ .Values.consensus.name }}
+  annotations:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  type: {{ .Values.consensus.service.type }}
+  ports:
+    - port: {{ .Values.consensus.service.port }}
+    {{ if eq .Values.consensus.service.type "NodePort"}}
+      nodePort: {{ .Values.consensus.service.nodePort }}
+    {{ end }}
+      protocol: TCP
+      name: {{ .Values.consensus.service.name }}
+  selector:
+    app: {{ .Values.consensus.name }}

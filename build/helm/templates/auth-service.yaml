@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.auth.name }}
+  labels:
+    app: {{ .Values.auth.name }}
+  annotations:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  type: {{ .Values.auth.service.type }}
+  ports:
+    - port: {{ .Values.auth.service.port }}
+    {{ if eq .Values.auth.service.type "NodePort"}}
+      nodePort: {{ .Values.auth.service.nodePort }}
+    {{ end }}
+      protocol: TCP
+      name: {{ .Values.auth.service.name }}
+  selector:
+    app: {{ .Values.auth.name }}

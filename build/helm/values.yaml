@@ -2,52 +2,98 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-namespace: cita
+redis:
+  usePassword: false
+  master:
+    persistence:
+      enabled: false
 
-tikv: 47.75.129.215:2379,47.75.129.215:2380,47.75.129.215:2381
-tikv_ip: 47.75.129.215
-redis_url: redis:6379
+# 0x439c2826d03fd4b38308818ea8f2b833826375a8c02cb4b382b162c2e8353cbe,0x4dd9014feefa2933bc7bfbe327a1df08d95d8b9091774da9056506e200642319
+privatekey: 0x4dd9014feefa2933bc7bfbe327a1df08d95d8b9091774da9056506e200642319
+address: 0x16fcbea49e67ff81af30c083b3f38398d8a6346b
+# nodes: 47.75.176.217:31000
+nodes: 47.75.176.217:31000,47.75.176.217:31001
+# 0xcf8c5fb059af0a47acbe4e05c46e37de5e829e54,0x16fcbea49e67ff81af30c083b3f38398d8a6346b
+addresses: 0xcf8c5fb059af0a47acbe4e05c46e37de5e829e54,0x16fcbea49e67ff81af30c083b3f38398d8a6346b
+validators: 0x044970c558e22fa415cb6cf560d2785e33d1dd74303acb84571d26c8a6b85469e069dbc1f808ffffcdbf47b191754453d8c34bfd04023fabe539acbd156d7d3c01,0x04b555f67a2cd22c8805fff27fc03a3b7aaf5c4f326232abfe79d7bf091fe559e6b425fb709ce4207f428b0153164d51c2703ee0d60256c0258b93b67fffbe5be9
+chainid: 1
 
-auth:
-  name: cita-auth
-  replicaCount: 1
+# common url
+common:
+  DB_TYPE: redis
+  DB_URL: redis-master:6379
+  TRACING: zipkin.istio-system:9411
+  CACHE: redis-master:6379
+
+api:
+  name: cita-api
+  replicas: 3
   image:
-    repository: yejiayu/cita-auth
-    tag: v0.2.6
-    pullPolicy: IfNotPresent
+    repository: yejiayu/cita-api
+    tag: v0.0.17
   service:
-    type: ClusterIP
-    port: 8001
+    name: grpc
+    type: NodePort
+    port: 7001
+    nodePort: 30001
 
-chain:
-  name: cita-chain
-  replicaCount: 1
+network:
+  name: cita-network
+  replicas: 1
   image:
-    repository: yejiayu/cita-chain
-    tag: v0.2.6
-    pullPolicy: IfNotPresent
+    repository: yejiayu/cita-network
+    tag: v0.0.17
   service:
-    type: ClusterIP
-    port: 8003
+    name: grpc
+    type: NodePort
+    port: 7101
+    nodePort: 31001
 
 consensus:
   name: cita-consensus
-  replicaCount: 1
+  replicas: 1
   image:
     repository: yejiayu/cita-consensus
-    tag: v0.2.6
-    pullPolicy: IfNotPresent
+    tag: v0.0.17
   service:
+    name: grpc
     type: ClusterIP
-    port: 8004
+    port: 8001
+  env:
+    QUOTA_LIMIT: "999999999"
+    TX_COUNT: "20000"
 
-evm:
-  name: cita-api
-  replicaCount: 1
+auth:
+  name: cita-auth
+  replicas: 3
   image:
-    repository: yejiayu/cita-api
-    tag: v0.2.6
-    pullPolicy: IfNotPresent
+    repository: yejiayu/cita-auth
+    tag: v0.0.17
   service:
+    name: grpc
     type: ClusterIP
-    port: 8000
+    port: 9001
+  env:
+    POOL_COUNT: 50000
+
+chain:
+  name: cita-chain
+  replicas: 3
+  image:
+    repository: yejiayu/cita-chain
+    tag: v0.0.17
+  service:
+    name: grpc
+    type: ClusterIP
+    port: 9002
+
+vm:
+  name: cita-vm
+  replicas: 3
+  image:
+    repository: yejiayu/cita-vm
+    tag: v0.0.17
+  service:
+    name: grpc
+    type: ClusterIP
+    port: 9003

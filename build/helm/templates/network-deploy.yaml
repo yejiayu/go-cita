@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Values.network.name }}
+  labels:
+    app: {{ .Values.network.name }}
+  annotations:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.network.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.network.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.network.name }}
+    spec:
+      containers:
+        - name: {{ .Values.network.name }}
+          env:
+            - name: PORT
+              value: "{{ .Values.network.service.port }}"
+            - name: ADDRESS
+              value: "{{ .Values.address }}"
+            - name: NODE_ADDRESSES
+              value: "{{ .Values.addresses }}"
+            - name: NODE_URLS
+              value: "{{ .Values.nodes }}"
+            - name: CONSENSUS_URL
+              value: "{{ .Values.consensus.name }}:{{ .Values.consensus.service.port }}"
+            - name: AUTH_URL
+              value: "{{ .Values.auth.name }}:{{ .Values.auth.service.port }}"
+            - name: CHAIN_URL
+              value: "{{ .Values.chain.name }}:{{ .Values.chain.service.port }}"
+          image: "{{ .Values.network.image.repository }}:{{ .Values.network.image.tag }}"
+          ports:
+            - name: {{ .Values.network.service.name }}
+              containerPort: {{ .Values.network.service.port }}
+              protocol: TCP

@@ -1,0 +1,34 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: "{{ .Values.api.name }}"
+  labels:
+    app: "{{ .Values.api.name }}"
+  annotations:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.api.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.api.name }}
+    spec:
+      containers:
+        - name: {{ .Values.api.name }}
+          env:
+            - name: PORT
+              value: "{{ .Values.api.service.port }}"
+            - name: AUTH_URL
+              value: "{{ .Values.auth.name }}:{{ .Values.auth.service.port }}"
+            - name: CHAIN_URL
+              value: "{{ .Values.chain.name }}:{{ .Values.chain.service.port }}"
+            - name: VM_URL
+              value: "{{ .Values.vm.name }}:{{ .Values.vm.service.port }}"
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          ports:
+            - name: {{ .Values.api.service.name }}
+              containerPort: {{ .Values.api.service.port }}
+              protocol: TCP

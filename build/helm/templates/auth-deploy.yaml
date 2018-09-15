@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Values.auth.name }}
+  labels:
+    app: {{ .Values.auth.name }}
+  annotations:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.auth.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.auth.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.auth.name }}
+    spec:
+      containers:
+        - name: {{ .Values.auth.name }}
+          env:
+            - name: PORT
+              value: "{{ .Values.auth.service.port }}"
+            - name: DB_TYPE
+              value: "{{ .Values.common.DB_TYPE }}"
+            - name: DB_URL
+              value: "{{ .Release.Namespace }}-{{ .Values.common.DB_URL }}"
+            - name: REDIS_URL
+              value: "{{ .Release.Namespace }}-{{ .Values.common.CACHE }}"
+            - name: POOL_COUNT
+              value: "{{ .Values.auth.env.POOL_COUNT }}"
+            - name: CHAIN_ID
+              value: "{{ .Values.chainid }}"
+            - name: NETWORK_URL
+              value: "{{ .Values.network.name }}:{{ .Values.network.service.port }}"
+          image: "{{ .Values.auth.image.repository }}:{{ .Values.auth.image.tag }}"
+          ports:
+            - name: {{ .Values.auth.service.name }}
+              containerPort: {{ .Values.auth.service.port }}
+              protocol: TCP

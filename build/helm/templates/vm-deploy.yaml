@@ -1,0 +1,34 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Values.vm.name }}
+  labels:
+    app: {{ .Values.vm.name }}
+  annotations:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.vm.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.vm.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.vm.name }}
+    spec:
+      containers:
+        - name: {{ .Values.vm.name }}
+          env:
+            - name: PORT
+              value: "{{ .Values.vm.service.port }}"
+            - name: DB_TYPE
+              value: "{{ .Values.common.DB_TYPE }}"
+            - name: DB_URL
+              value: "{{ .Release.Namespace }}-{{ .Values.common.DB_URL }}"
+            - name: CHAIN_ID
+              value: "{{ .Values.chainid }}"
+          image: "{{ .Values.vm.image.repository }}:{{ .Values.vm.image.tag }}"
+          ports:
+            - name: {{ .Values.vm.service.name }}
+              containerPort: {{ .Values.vm.service.port }}
+              protocol: TCP

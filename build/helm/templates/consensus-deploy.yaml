@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Values.consensus.name }}
+  labels:
+    app: {{ .Values.consensus.name }}
+  annotations:
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.consensus.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.consensus.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.consensus.name }}
+    spec:
+      containers:
+        - name: {{ .Values.consensus.name }}
+          env:
+            - name: PORT
+              value: "{{ .Values.consensus.service.port }}"
+            - name: PRIVATE_KEY_HEX
+              value: "{{ .Values.privatekey }}"
+            - name: QUOTA_LIMIT
+              value: "{{ .Values.consensus.env.QUOTA_LIMIT }}"
+            - name: TX_COUNT
+              value: "{{ .Values.consensus.env.TX_COUNT }}"
+            - name: AUTH_URL
+              value: "{{ .Values.auth.name }}:{{ .Values.auth.service.port }}"
+            - name: CHAIN_URL
+              value: "{{ .Values.chain.name }}:{{ .Values.chain.service.port }}"
+            - name: NETWORK_URL
+              value: "{{ .Values.network.name }}:{{ .Values.network.service.port }}"
+          image: "{{ .Values.consensus.image.repository }}:{{ .Values.consensus.image.tag }}"
+          ports:
+            - name: {{ .Values.consensus.service.name }}
+              containerPort: {{ .Values.consensus.service.port }}
+              protocol: TCP
