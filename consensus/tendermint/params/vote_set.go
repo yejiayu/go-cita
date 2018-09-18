@@ -10,14 +10,19 @@ import (
 	"github.com/yejiayu/go-cita/pb"
 )
 
+type SignatureVote struct {
+	Vote      *pb.Vote  `json:"vote"`
+	Signature []byte    `json:"signature"`
+	Time      time.Time `json:"time"`
+}
+
 type VoteSet struct {
 	mu     sync.RWMutex
 	height uint64
 	round  uint64
 
-	votesByBlock map[hash.Hash][]*pb.Vote
+	votesByBlock map[hash.Hash][]*SignatureVote
 	valSet       *ValidatorSet
-	voteTimeSet  map[hash.Hash]time.Time
 }
 
 func NewVoteSet(height, round uint64, valSet *ValidatorSet) *VoteSet {
@@ -25,9 +30,8 @@ func NewVoteSet(height, round uint64, valSet *ValidatorSet) *VoteSet {
 		height: height,
 		round:  round,
 
-		votesByBlock: make(map[hash.Hash][]*pb.Vote),
+		votesByBlock: make(map[hash.Hash][]*SignatureVote),
 		valSet:       valSet,
-		voteTimeSet:  make(map[hash.Hash]time.Time),
 	}
 }
 
@@ -57,22 +61,21 @@ func (vs *VoteSet) AddVote(vote *pb.Vote, signature []byte) bool {
 	}
 
 	for _, v := range vs.votesByBlock[blockHash] {
-		if bytes.Equal(v.GetAddress(), address.Bytes()) {
-			if lastT, ok := vs.voteTimeSet[voteHash]; ok {
-				if time.Now().Sub(lastT) < time.Second*3 {
-					return false
-				}
-
-				vs.voteTimeSet[voteHash] = time.Now()
-				return true
+		if bytes.Equal(v.Vote.GetAddress(), address.Bytes()) {
+			if time.Now().Sub(v.Time) < time.Second*3 {
+				return false
 			}
-			return false
+			v.Time = time.Now()
 		}
 	}
 
-	vs.votesByBlock[blockHash] = append(vs.votesByBlock[blockHash], vote)
-	vs.voteTimeSet[voteHash] = time.Now()
+	vs.votesByBlock[blockHash] = append(vs.votesByBlock[blockHash], &SignatureVote{
+		Vote:      vote,
+		Signature: signature,
+		Time:      time.Now(),
+	})
 	log.Infof("vote set, round %d, %+v", vote.GetRound(), vs.votesByBlock[blockHash])
+
 	return true
 }
 
@@ -109,4 +112,8 @@ func (vs *VoteSet) TwoThirdsMajority() (hash.Hash, bool) {
 	}
 
 	return hash.Hash{}, false
+}
+
+func (vs *VoteSet) GetVotes(blockHash hash.Hash) []*SignatureVote {
+	return vs.votesByBlock[blockHash]
 }

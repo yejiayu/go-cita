@@ -105,6 +105,7 @@ type roundStep struct {
 	extension Extension
 	ticker    TimeoutTicker
 
+	proof      *pb.Proof     `json:"proof"`
 	Height     uint64        `json:"height"`
 	Round      uint64        `json:"round"`
 	RoundStep  RoundStepType `json:"step"`
@@ -197,15 +198,15 @@ func (rs *roundStep) SetVote(vote *pb.Vote, signature []byte) error {
 		return nil
 	}
 
-	log.Infof("vote added, address=%s, height=%d, round=%d, vote_type=%s", hash.ToHex(vote.GetAddress()), vote.GetHeight(), vote.GetRound(), vote.GetVoteType())
+	log.Infof("vote added. address=%s height=%d round=%d vote_type=%s. self height=%d round=%d step=%s",
+		hash.ToHex(vote.GetAddress()), vote.GetHeight(), vote.GetRound(), vote.GetVoteType(),
+		rs.Height, rs.Round, rs.RoundStep)
 
 	switch vote.GetVoteType() {
 	case pb.VoteType_Prevote:
 		if rs.RoundStep == RoundStepPrevote || rs.RoundStep == RoundStepPrevoteWait {
 			if _, ok := rs.HeightVoteSet.Prevotes(rs.Round).TwoThirdsMajority(); ok {
-				if rs.RoundStep == RoundStepPrevoteWait || rs.RoundStep == RoundStepPrevote {
-					go rs.enterPrecommit()
-				}
+				go rs.enterPrecommit()
 			} else if rs.HeightVoteSet.Prevotes(rs.Round).HasTwoThirdsAny() {
 				if rs.RoundStep == RoundStepPrevote {
 					rs.updateStep(RoundStepPrevoteWait)
@@ -215,9 +216,7 @@ func (rs *roundStep) SetVote(vote *pb.Vote, signature []byte) error {
 	case pb.VoteType_precommit:
 		if rs.RoundStep == RoundStepPrecommit || rs.RoundStep == RoundStepPrecommitWait {
 			if _, ok := rs.HeightVoteSet.Precommits(rs.Round).TwoThirdsMajority(); ok {
-				if rs.RoundStep == RoundStepPrecommitWait || rs.RoundStep == RoundStepPrecommit {
-					go rs.enterCommit()
-				}
+				go rs.enterCommit()
 			} else if rs.HeightVoteSet.Precommits(rs.Round).HasTwoThirdsAny() {
 				if rs.RoundStep == RoundStepPrecommit {
 					rs.updateStep(RoundStepPrecommitWait)
@@ -230,6 +229,9 @@ func (rs *roundStep) SetVote(vote *pb.Vote, signature []byte) error {
 }
 
 func (rs *roundStep) updateStep(step RoundStepType) {
+	if step != RoundStepNewHeight && step != RoundStepNewRound && step < rs.RoundStep {
+		return
+	}
 	log.Infof("update step to %s, height=%d, round=%d", step.String(), rs.Height, rs.Round)
 	rs.RoundStep = step
 
@@ -255,7 +257,7 @@ func (rs *roundStep) timeout() {
 		step := rs.RoundStep
 		rs.mu.Unlock()
 
-		if ti.Height != height || ti.Round != round {
+		if ti.Height != height || ti.Round != round || ti.Step < step {
 			continue
 		}
 
@@ -334,6 +336,8 @@ func (rs *roundStep) enterPropose() {
 			if err != nil {
 				log.Panic(err)
 			}
+
+			block.GetHeader().Proof = rs.proof
 		}
 
 		proposal := &pb.Proposal{
@@ -516,29 +520,51 @@ func (rs *roundStep) enterCommit() {
 	lockedHash, err := hash.ProtoToSha3(rs.LockedBlock)
 	if err == nil && lockedHash == blockHash {
 		log.Info("votes commit locked block")
-		if err = rs.extension.Commit(rs.LockedBlock); err != nil {
+		if err := rs.finally(lockedHash, rs.LockedBlock); err != nil {
 			log.Panic(err)
 		}
-
-		rs.CommitTime = time.Now()
-		rs.updateStep(RoundStepNewHeight)
 		return
 	}
 
 	proposalHash, err := hash.ProtoToSha3(rs.Proposal.GetBlock())
 	if err == nil && proposalHash == blockHash {
 		log.Info("votes commit block")
-		if err = rs.extension.Commit(rs.Proposal.GetBlock()); err != nil {
+		if err := rs.finally(proposalHash, rs.Proposal.GetBlock()); err != nil {
 			log.Panic(err)
 		}
-
-		rs.CommitTime = time.Now()
-		rs.updateStep(RoundStepNewHeight)
 		return
 	}
 
 	rs.Round++
 	rs.updateStep(RoundStepNewRound)
+}
+
+func (rs *roundStep) finally(blockHash hash.Hash, block *pb.Block) error {
+	if err := rs.extension.Commit(block); err != nil {
+		return err
+	}
+
+	vs := rs.HeightVoteSet.Precommits(rs.Round)
+
+	signatureVotes := vs.GetVotes(blockHash)
+	var commits []*pb.ProofCommit
+	for _, sv := range signatureVotes {
+		commits = append(commits, &pb.ProofCommit{
+			Sender:    sv.Vote.GetAddress(),
+			Signature: sv.Signature,
+		})
+	}
+
+	rs.proof = &pb.Proof{
+		Height:  block.GetHeader().GetHeight(),
+		Round:   rs.Round,
+		Hash:    blockHash.Bytes(),
+		Commits: commits,
+	}
+
+	rs.CommitTime = time.Now()
+	rs.updateStep(RoundStepNewHeight)
+	return nil
 }
 
 func (rs *roundStep) addVoteByBlock(height, round uint64, vt pb.VoteType, block *pb.Block) {

@@ -94,8 +94,6 @@ func (t *timeoutTicker) timeoutRoutine() {
 	for {
 		select {
 		case newti := <-t.tickChan:
-			log.Debug("Received tick", "old_ti", ti, "new_ti", newti)
-
 			// ignore tickers for old height/round/step
 			if newti.Height < ti.Height {
 				continue
@@ -109,6 +107,7 @@ func (t *timeoutTicker) timeoutRoutine() {
 				}
 			}
 
+			log.Debug("Received tick", "old_ti", ti, "new_ti", newti)
 			// stop the last timer
 			t.stopTimer()
 
@@ -116,7 +115,7 @@ func (t *timeoutTicker) timeoutRoutine() {
 			// NOTE time.Timer allows duration to be non-positive
 			ti = newti
 			t.timer.Reset(ti.Duration)
-			log.Infof("Scheduled timeou, dur=%s height=%d round=%d step=%s", ti.Duration.String(), ti.Height, ti.Round, ti.Step.String())
+			log.Infof("Scheduled timeout, dur=%s height=%d round=%d step=%s", ti.Duration.String(), ti.Height, ti.Round, ti.Step.String())
 		case <-t.timer.C:
 			log.Infof("timed out, dur=%s height=%d round=%d step=%s", ti.Duration.String(), ti.Height, ti.Round, ti.Step.String())
 			// go routine here guarantees timeoutRoutine doesn't block.
